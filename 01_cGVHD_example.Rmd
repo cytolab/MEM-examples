@@ -1,0 +1,298 @@
+---
+title: "Data Analysis Workflow Example Using MEM on cGVHD Patient Data (t-SNE, UMAP, FlowSOM, MEM, RMSD)"
+author: "Copyright (c) 2016-2019 by Kirsten Diggins, Sierra Barone, and Jonathan Irish, All Rights Reserved; see EULA-MEM.text for MEM license information"
+date: "March 5, 2019"
+output:
+  pdf_document: 
+    latex_engine: xelatex  
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+```{r setup, include=FALSE}
+# Load all libraries
+# If you get an error message, you will need to try re-installing packages
+library(FlowSOM)
+library(flowCore)
+library(Biobase)
+library(gplots)
+library(ggplot2)
+library(hexbin)
+library(MEM)
+library(tidyverse)
+library(Rtsne)
+library(uwot)
+library(viridis)
+library(ggExtra)
+
+# Load data file into R and set seed
+setwd(paste(getwd(), "/datafiles/cGVHD", sep = ""))
+filename <-  dir(pattern = "*.csv")
+all.data = read.csv(filename)
+scaled.data = all.data[, c(2:9)]
+original.clusters = all.data[, c(22)]
+original.tSNE = all.data[, c(23:24)]
+overall_seed = 46
+```
+
+```{r t-SNE}
+# Run t-SNE on scaled markers
+set.seed(overall_seed)
+mytSNE = Rtsne(
+  scaled.data,
+  dims = 2,
+  initial_dims = 8,
+  perplexity = 15,
+  check_duplicates = FALSE,
+  max_iter = 10000
+)
+tSNE.data = as.data.frame(mytSNE$Y)
+
+range <- apply(apply(tSNE.data, 2, range), 2, diff)
+graphical.ratio.t <- (range[1] / range[2])
+
+# t-SNE flat dot plot and density dot plot (each dot is a patient)
+tSNE.plot <- data.frame(x = tSNE.data[, c(1)], y = tSNE.data[, c(2)])
+
+ggplot(tSNE.plot) + coord_fixed(ratio = graphical.ratio.t) + 
+  geom_point(aes(x = x, y = y), cex = 1) + 
+  labs(x = "t-SNE 1", y = "t-SNE 2", title = "t-SNE on cGVHD Patient Data") + 
+  theme_bw() + 
+  labs(caption = "Data from Gandelman et al.,
+       Hematologica 2019, 104: 189-196 \nFlow Repository: FR-FCM-ZYSU")
+```
+```{r FlowSOM on t-SNE}
+# Run FlowSOM on the t-SNE axes
+tSNE.data.mat <- as.matrix(tSNE.data)
+
+# create flowFrame
+metadata <-
+  data.frame(name = dimnames(tSNE.data.mat)[[2]],
+             desc = paste('t-SNE', dimnames(tSNE.data.mat)[[2]]))
+metadata$range <- apply(apply(tSNE.data.mat , 2, range), 2, diff)
+metadata$minRange <- apply(tSNE.data.mat , 2, min)
+metadata$maxRange <- apply(tSNE.data.mat , 2, max)
+tSNE.flowframe <- new("flowFrame",
+                      exprs = tSNE.data.mat ,
+                      parameters = AnnotatedDataFrame(metadata))
+
+# implement the FlowSOM on t-SNE data
+fSOM.t <-
+  FlowSOM(
+    tSNE.flowframe,
+    compensate = FALSE,
+    transform = FALSE,
+    toTransform = c(1:2),
+    scale = TRUE,
+    colsToUse = c(1:2),
+    xdim = 7,
+    ydim = 7,
+    nClus = 7,
+    seed = overall_seed
+  )
+tSNE.FlowSOM.clusters <-
+  as.matrix(fSOM.t[[2]][fSOM.t[[1]]$map$mapping[, 1]])
+
+# plot t-SNE with FlowSOM clusters
+ggplot(tSNE.plot) + coord_fixed(ratio = graphical.ratio.t) + 
+  geom_point(aes(x = x, y = y, color = tSNE.FlowSOM.clusters), cex = 1.5) + 
+  labs(x = "t-SNE 1", y = "t-SNE 2", title = "FlowSOM Clustering on t-SNE Axes", 
+       color = "FlowSOM Cluster") + theme_bw() + 
+  guides(colour = guide_legend(override.aes = list(size=5))) +
+  labs(caption = "Data from Gandelman et al.,Hematologica 2019, 104: 189-196\nFlow Repository: FR-FCM-ZYSU")
+```
+```{r MEM on t-SNE/FlowSOM Clusters, warning=FALSE}
+# Run MEM on the FlowSOM clusters from t-SNE
+cluster = as.numeric(as.vector((tSNE.FlowSOM.clusters)))
+MEMdata = cbind(scaled.data, cluster)
+
+MEM.values.tf = MEM(
+  MEMdata,
+  transform = FALSE,
+  cofactor = 0,
+  choose.markers = FALSE,
+  markers = "all",
+  choose.ref = FALSE,
+  zero.ref = FALSE,
+  rename.markers = FALSE,
+  new.marker.names = "Mouth,GI,Eye,Joint,BSA,Sclerosis,Fascia,Liver",
+  file.is.clust = FALSE,
+  add.fileID = FALSE,
+  IQR.thresh = NULL
+)
+
+# build MEM heatmap and output enrichment scores
+build.heatmaps(
+  MEM.values.tf,
+  cluster.MEM = "both",
+  cluster.medians = "none",
+  display.thresh = 1,
+  newWindow.heatmaps = FALSE,
+  output.files = FALSE,
+  labels = TRUE,
+  only.MEMheatmap = TRUE
+)
+
+```
+
+```{r UMAP}
+# Run UMAP on scaled markers
+set.seed(overall_seed)
+myumap <- umap(scaled.data, ret_model = TRUE, n_threads = 1)
+umap.data = as.data.frame(myumap$embedding)
+
+range <- apply(apply(umap.data, 2, range), 2, diff)
+graphical.ratio.u <- (range[1] / range[2])
+
+# UMAP flat dot plot and density dot plot
+UMAP.plot <- data.frame(x = umap.data[, 1], y = umap.data[, 2])
+
+ggplot(UMAP.plot) + coord_fixed(ratio = graphical.ratio.u) +
+  geom_point(aes(x = x, y = y), cex = 1) +
+  labs(x = "UMAP 1", y = "UMAP 2", title = "UMAP on cGVHD Patient Data") +
+  theme_bw() + labs(caption = "Data from Gandelman et al., Hematologica 2019, 104: 189-196\nFlow Repository: FR-FCM-ZYSU")
+```
+
+
+```{r FlowSOM on UMAP}
+# Run FlowSOM on the UMAP axes
+umap.data.mat <- as.matrix(umap.data)
+
+# create flowFrame
+UMAP.metadata <-
+  data.frame(name = dimnames(umap.data.mat)[[2]],
+             desc = paste('UMAP', dimnames(umap.data.mat)[[2]]))
+UMAP.metadata$range <-
+  apply(apply(umap.data.mat, 2, range), 2, diff)
+UMAP.metadata$minRange <- apply(umap.data.mat, 2, min)
+UMAP.metadata$maxRange <- apply(umap.data.mat, 2, max)
+umap.flowframe <- new("flowFrame",
+                      exprs = umap.data.mat,
+                      parameters = AnnotatedDataFrame(UMAP.metadata))
+
+# implement the FlowSOM on the data
+fSOM.u <-
+  FlowSOM(
+    umap.flowframe,
+    compensate = FALSE,
+    transform = FALSE,
+    toTransform = c(1:2),
+    scale = TRUE,
+    colsToUse = c(1:2),
+    nClus = 7,
+    seed = overall_seed
+  )
+UMAP.FlowSOM.clusters <-
+  as.matrix(fSOM.u[[2]][fSOM.u[[1]]$map$mapping[, 1]])
+
+# plot FlowSOM clusters on UMAP axes
+ggplot(UMAP.plot) + coord_fixed(ratio = graphical.ratio.u) + 
+  geom_point(aes(x = x, y = y, color = UMAP.FlowSOM.clusters), cex = 1.5) + 
+  labs(x = "UMAP 1", y = "UMAP 2", title = "FlowSOM Clustering on UMAP Axes",
+       color = "FlowSOM Cluster") + theme_bw() + 
+  guides(colour = guide_legend(override.aes = list(size=5))) +
+  labs(caption = "Data from Gandelman et al., Hematologica 2019, 104: 189-196 \nFlow Repository: FR-FCM-ZYSU")
+```
+```{r MEM on UMAP/FlowSOM Clusters, warning = FALSE}
+# Run MEM on the FlowSOM clusters from UMAP
+cluster.u = as.numeric(as.vector((UMAP.FlowSOM.clusters)))
+MEMdata.u = cbind(scaled.data, cluster.u)
+
+MEM.values.uf = MEM(
+  MEMdata.u,
+  transform = FALSE,
+  cofactor = 0,
+  choose.markers = FALSE,
+  markers = "all",
+  choose.ref = FALSE,
+  zero.ref = FALSE,
+  rename.markers = FALSE,
+  new.marker.names = "Mouth,GI,Eye,Joint,BSA,Sclerosis,Fascia,Liver",
+  file.is.clust = FALSE,
+  add.fileID = FALSE,
+  IQR.thresh = NULL
+)
+
+# build MEM heatmap and output enrichment scores
+build.heatmaps(
+  MEM.values.uf,
+  cluster.MEM = "both",
+  cluster.medians = "none",
+  display.thresh = 1,
+  newWindow.heatmaps = FALSE,
+  output.files = FALSE,
+  labels = TRUE,
+  only.MEMheatmap = TRUE
+)
+```
+
+```{r Fig.1 Data from Gandelman et al., Hematologica 2019}
+# t-SNE plot with FlowSOM Clusters from Fig.1 in Gandelman et al., Hematologica 2019
+published.data <-
+  data.frame(x = original.tSNE[, 1], y = original.tSNE[, 2])
+
+ggplot(published.data) + coord_fixed(ratio = 0.6) + geom_point(aes(
+  x = x,
+  y = y,
+  color = as.factor(original.clusters)
+), cex = 1.5) + labs(
+  x = "t-SNE 1",
+  y = "t-SNE 2",
+  title = "Published Clusters on t-SNE Axes",
+  color = "FlowSOM Cluster"
+) + theme_bw() + guides(colour = guide_legend(override.aes = list(size=5))) +
+  labs(caption = "Data from Fig.1 as in Gandelman et al., Hematologica 2019, 104: 190\nFlow Repository: FR-FCM-ZYSU")
+```
+
+```{r MEM on Fig.1 Data, warning = FALSE}
+# Run MEM on the FlowSOM clusters from paper
+cluster = original.clusters
+MEMdata.orig = cbind(scaled.data, cluster)
+
+MEM.values.orig = MEM(
+  MEMdata.orig,
+  transform = FALSE,
+  cofactor = 0,
+  choose.markers = FALSE,
+  markers = "all",
+  choose.ref = FALSE,
+  zero.ref = FALSE,
+  rename.markers = FALSE,
+  new.marker.names = "Mouth,GI,Eye,Joint,BSA,Sclerosis,Fascia,Liver",
+  file.is.clust = FALSE,
+  add.fileID = FALSE,
+  IQR.thresh = NULL
+)
+
+# build MEM heatmap and output enrichment scores
+build.heatmaps(
+  MEM.values.orig,
+  cluster.MEM = "both",
+  cluster.medians = "none",
+  display.thresh = 1,
+  newWindow.heatmaps = FALSE,
+  output.files = FALSE,
+  labels = TRUE,
+  only.MEMheatmap = TRUE
+)
+```
+
+```{r RMSD for All Clusters}
+# RMSD to compare MEM labels from three different clusterings (Fig.1 t-SNE and FlowSOM, our t-SNE and FlowSOM, and our UMAP and FlowSOM)
+orig.MEM.scores = as.data.frame(MEM.values.orig[[5]])
+rownames(orig.MEM.scores) = paste0(rownames(orig.MEM.scores), " (Fig.1)")
+tf.MEM.scores = as.data.frame(MEM.values.tf[[5]])
+rownames(tf.MEM.scores) = paste0(rownames(tf.MEM.scores), ' (t-SNE)')
+uf.MEM.scores = as.data.frame(MEM.values.uf[[5]])
+rownames(uf.MEM.scores) = paste0(rownames(uf.MEM.scores), ' (UMAP)')
+all.MEM.values = as.matrix(rbind(tf.MEM.scores, uf.MEM.scores, orig.MEM.scores))
+
+RMSD_vals <-
+  MEM_RMSD(
+    all.MEM.values,
+    format = NULL,
+    newWindow.heatmaps = FALSE,
+    output.matrix = FALSE
+  )
+```

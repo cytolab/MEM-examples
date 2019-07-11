@@ -1,0 +1,195 @@
+---
+title: "Intro to Marker Enrichment Modeling Analysis"
+author: "Kirsten Diggins"
+editor: "Sierra Barone"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteIndexEntry{Intro to Marker Enrichment Modeling Analysis}
+  %\VignetteIndexEntry{MEM}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Intro to Marker Enrichment Modeling
+
+Marker Enrichment ModelingMarker Enrichment Modeling (MEM) is an analysis method for automatically generating quantitative labels for cell populations. The labels include measured features that are specifically enriched on the population compared to a reference population or set of populations. 
+
+The equation is as follows:
+
+$MEM = |MAGpop-MAGref| + IQRref/IQRpop -1$;  If MAGpop-MAGref <0, MEM = -MEM
+
+The scores are normalized to a -10 to +10 scale in order to facilitate comparison across datasets, data types, and platforms.
+
+For example, the label generated for CD4+ T cells in comparison to other blood cells is:  
+  
+CD4^+4^ CD3^+4^ CD44^+2^ CD61^+1^ CD45^+1^ CD33^+1^  
+CD16^-9^ CD8^-7^ CD11c^-5^ HLADR^-5^ CD69^-3^ CD11b^-2^ CD20^-2^ CD38^-1^ CD56^-1^  
+
+This label means that in the context of normal human blood, this cell population is specifically enriched for CD4, CD3, CD44, CD61, CD45, and CD3 while it lacks enrichment of CD16, CD8, CD11c, HLA-DR, CD69, CD11b, CD20, CD38, and CD56.
+
+### Example Data: Normal Human Peripheral Blood Cells (PBMC)
+
+As an example, a dataset from the mass cytometry characterization of normal human blood is shown here. 25 surface markers were measured on approximately 50K cells (post-cleanup gating) to generate these data. 
+
+7 major blood cell populations were identified by expert biaxial gating: CD4+ T cells, CD8+ T cells, natural killer (NK) cells, dendritic cells (DCs), IgM+ B cells, IgM- B cells, and monocyte. The single-cell data from these gates were merged into one file that includes an additional column specifying the cluster ID (gate) of each cell. 
+
+|Cluster|Cell population|
+|-------|---------------|
+|   1   |CD4+ T cells   |
+|   2   |CD8+ T cells   |
+|   3   |DCs            |
+|   4   |IgM- B cells   |
+|   5   |IgM+ B cells   |
+|   6   |Monocytes      |
+|   7   |NK cells       |
+
+
+```{r}
+library(MEM)
+head(PBMC)
+```
+  
+For additional details about the measured features and further references, see `?PBMC`.
+
+ 
+### Input data: File format and structure
+
+The `MEM()` function accepts matrix and data frame objects and file types .txt, .csv, and .fcs.
+
+### Multiple Files
+
+#### Reading files in to R
+If you have multiple files and each file contains cells from one cluster (i.e. what you would get from exporting gates as files from a flow data analysis platform), you can enter a list of file names as input. The easiest way to do this is 
+
+```
+infiles <- dir()
+MEM_values <- MEM(infiles,...)
+```
+In the above example, `infiles` will contain a list of all the file names in your working directory. Subfolders will be ignored during the analysis. This method assumes that the only files in the folder are those meant to be analyzed and therefore expects them to be of the same file type. If you have multiple file types in the folder you can use `infiles <- dir(pattern="*.[ext]")` to only select files of type [ext]. For example, to only read the .txt files, use `pattern="*.txt"`.
+
+#### Use of `file.is.clust` and `add.fileID`
+
+If you have multiple files, you will need to specify whether each file is a cluster using the `file.is.clust` argument of the MEM function. If `file.is.clust=TRUE`, this means that each file contains cells from only one cluster. 
+
+If `file.is.clust=FALSE`, this means that each file contains cells from multiple clusters **and** that the last column of each file specifies the cells' cluster IDs. This might be the case if, for example, you ran a cluster analysis on multiple files together and then separated the files back out to compare clusters across conditions, timepoints, etc.
+
+Additionally, if `file.is.clust=FALSE`, you can use the `add.fileID` argument to specify (`TRUE` or `FALSE`) if a file ID should be appended to each cell's cluster ID. For example, if you had 3 files and each file contained a mix of cells from 5 clusters (1-5), the new cluster IDs for the cells from cluster 1 would be 1.1, 1.2, and 1.3 depending on which file they came from (file 1, file 2, or file 3). This may be particularly useful in cases where a cluster analysis was run across files from multiple experimental conditions. The `add.fileID=TRUE` option will keep cells separate depending on the experimental condition, making it easier to compare feature enrichment changes that occur both between clusters and between conditions.
+
+If `file.is.clust=TRUE` or `add.fileID=TRUE`, a folder called `output files` will be created in the user's working directory and a txt file will be written that specifies which file corresponds to each cluster ID.
+
+### Data Format
+
+In all cases, whether data is in the form of multiple files, a single file, or a data frame or matrix object, the cells must be in the rows and the markers or measured features must be in the columns, where the last column is the cluster ID (unless `file.is.clust=TRUE`).
+ 
+ Ex)
+
+Feature A  | Feature B  | Feature C  |  cluster   |
+-----------|------------|------------|------------|
+ Cell 1A   |  Cell 1B   |  Cell 1C   |Cell 1 clust|
+ Cell 2A   |  Cell 2B   |  Cell 2C   |Cell 2 clust|
+ Cell 3A   |  Cell 3B   |  Cell 3C   |Cell 3 clust|
+
+
+### Arcsinh Transformation
+
+You can optionally apply a hyperbolic arcsine transformation to your data. This is a log-like transformation commonly applied to flow cytometry data. If `transform=TRUE`, the transformation will be applied across all non-clusterID channels in the dataset. The `cofactor` argument species what cofactor to use in this transformation. For `PBMC`, the transformation is applied with a cofactor of 15.
+
+`MEM_values = (PBMC, transform=TRUE, cofactor=15,...)`
+
+If you prefer to use a different type of transformation or need to apply different cofactors to different channels (as is often the case for fluorescence flow cytometry data), you should apply these transformations to the data prior to MEM analysis and then set `transform=FALSE`.  
+
+### Reference Population Selection
+
+The argument `choose.ref` should be set to `TRUE` if you wish to choose an alternative reference population. A prompt will appear in the console asking which population(s) to use as reference. These should be referred to by their cluster IDs. For example, to use populations 1 and 2 as reference, when prompted the user should enter `1,2`. These populations will subsequently be combined into one merged reference population that will be used for all populations in the dataset.
+
+By default, the reference population will be all non-population cells in the dataset. For example, if there are 5 clusters or populations (1-5), population 1 will be compared to populations 2-5. In this case, populations 2-5 will be automatically combined into one merged cluster that is referred to as reference population 1. The same is done for all other populations in the dataset.
+
+However, it may sometimes be useful to compare populations to a single population or subset of populations using `choose.ref=TRUE`. For example, in an analysis of bone marrow cells, one might compare all the cells to the hematopoeitic stem cell population in order to determine changes that occur in cell surface marker enrichment over the course of blood cell differentiation. 
+
+You can also set the reference to be a zero, or synthetic negative, reference using `zero.ref=TRUE`. This is useful when you want to see the positive enrichements of each population. For example, if all of your samples are CD45+, the MEM label and heatmap will show this enrichment for all of the populations instead of the CD45 not appearing due to the comparison between populations. 
+
+### IQR Thresholding
+
+Given that population and reference IQR values are compared in a ratio in the MEM equation, if a population has a very small IQR due to background level expression on a channel, this can artificially inflate the MEM value for that marker on the population. In order to avoid this, a threshold of 0.5 is automatically set. 
+
+The user can also enter their own IQR threshold value; however, this is not recommended unless the analyst understands the implications of changing the IQR value and has a deep understanding of the dataset.
+
+### Putting it all together: MEM analysis of PBMC
+
+To run the `PBMC` example directly, use `example(MEM)`. It is not necessary to choose or rename the markers to run the analysis on this dataset. However, to illustrate the workflow, example code and console output is shown below for the `PBMC` dataset using `choose.markers=TRUE` and `rename.markers=TRUE`.
+
+```
+Version 1 (with user input in console)
+
+MEM(PBMC, transform=TRUE, cofactor=15, choose.markers=TRUE, markers="all", rename.markers=TRUE, new.marker.names="none, choose.ref=FALSE, zero.ref=FALSE, IQR.thresh=NULL)
+
+# Column names in your file will be printed to the console
+Enter column numbers to include (e.g. 1:5,6,8:10).
+1:25
+
+Enter new marker names, in same order they appear above, separated by commas.
+No spaces allowed in name.
+CD19,CD117,CD11b,CD4,CD8,CD20,CD34,CD61,CD123,CD45RA,CD45,CD10,CD33,CD11c,CD14,CD69,CD15,CD16,CD44,CD38,CD25,CD3,IgM,HLADR,CD56
+
+
+Version 2 (passing character strings through MEM)
+
+MEM(PBMC, transform=TRUE, cofactor=15, choose.markers=FALSE,markers="1:25",choose.ref=FALSE,zero.ref=FALSE,rename.markers=FALSE, new.marker.names="CD19,CD117,CD11b,CD4,CD8,CD20,CD34,CD61,CD123,CD45RA,CD45,CD10,CD33,CD11c,CD14,CD69,CD15,CD16,CD44,CD38,CD25,CD3,IgM,HLADR,CD56",IQR.thresh=NULL)
+
+```
+
+When successfully executed, the `MEM` function returns a list of matrices:  
+
+Matrix|                  Values                          |
+------|--------------------------------------------------|
+MAGpop|population medians for each marker
+MAGref|medians for each population's reference population
+IQRpop|population interquartile ranges for each marker
+IQRref|IQRs for each population's reference population
+
+
+See `?MEM_values` for more details.  
+
+The output for MEM analysis of the `PBMC` dataset is shown below.
+
+```{r}
+library(MEM)
+
+MEM(PBMC, transform=TRUE, cofactor=15, choose.markers=FALSE,markers="1:25",choose.ref=FALSE,zero.ref=FALSE,rename.markers=FALSE, new.marker.names="CD19,CD117,CD11b,CD4,CD8,CD20,CD34,CD61,CD123,CD45RA,CD45,CD10,CD33,CD11c,CD14,CD69,CD15,CD16,CD44,CD38,CD25,CD3,IgM,HLADR,CD56",IQR.thresh=NULL)
+
+```
+
+
+## Generating MEM labels and heatmaps
+
+The `build.heatmaps()` function is meant to be used along with the `MEM` function to generate labels and heatmaps from the MEM function output. 
+
+```
+MEM_values = MEM(infiles,...)
+build.heatmaps(MEM_values,...)
+```
+The `build.heatmaps` function will output a heatmap of population medians and a heatmap of MEM scores with population MEM labels as the heatmap row names. Additionally, files can be automatically written to the `output files` folder that is automatically created in the user's working directory. 
+
+Output files include
+
+* PDF of MEM heatmap ("MEM heatmap.pdf")  
+* PDF of median heatmap ("Medians heatmap.pdf")  
+* Txt file containing the population MEM labels ("enrichment score-rownames.txt")  
+* Txt file containing the population median values displayed in the heatmap ("Medians matrix.txt")   
+* Txt file containing unrounded population MEM scores displayed in the heatmap("MEM matrix.txt")  
+
+### Arguments of `build.heatmaps()`
+
+`build.heatmaps(MEM_values,cluster.MEM="both",cluster.medians="none",display.thresh=0,output.files=TRUE,labels = TRUE)`
+
+Heatmaps are generated by an internal call to the function `heatmap.2()` in the package `{gplots}`. The user is given the option to cluster the rows, columns, or both of the median and MEM heatmap. If `cluster.medians=FALSE`, the order of the median heatmap rows and columns will be ordered to match the order of the MEM heatmap rows and columns. The heatmaps will open in new R windows. If you want the MEM labels on the generated MEM heatmap, set `labels=TRUE`.
+
+The heatmaps will also be written to file if user has entered `output.files=TRUE`. Note that due to the window dimensions the rownames will likely be cut off in the displayed heatmap. To view the full rownames, save the image as a pdf file and open it in a pdf editing program. You can also access the full MEM label in the output text file "enrichment score-rownames.txt".
+
+The `display.thresh` argument must be numeric, 0-10. The MEM label that is displayed for each population will include all markers with a MEM score equal to or  greater than `display.thresh`. `display.thresh` defaults to 0, meaning that all markers will be displayed, including those with an enrichment score of 0.
+
+An example of this function can be run directly using `example(build.heatmaps)`. This will generate heatmaps using output from the MEM analysis of `PBMC`. 
+
+

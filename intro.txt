@@ -1,0 +1,63 @@
+This section is meant as an orientation for users who are new to R.  
+The contents of this file print as part of one of the CHUNKS of setup code in an Rmarkdown script.
+Thus, you should be reading this within an Rmarkdown file from RStudio, not a TXT reader.
+
+To run a LINE of code, press CTRL-ENTER and you will execute the current or next line of code. [For Mac users, you will press COMMAND instead of CTRL]
+To run a CHUNK of code, press CTRL-SHIFT-ENTER and you will run the current or next chunk.
+
+Pressing CONTROL-ENTER in this script window is a shortcut to type that line in the CONSOLE below.
+When code is running for a while, you will see install bars or a red stop sign.
+
+You will first need to install the following for this course:
+
+1) R, a stats programming environment that is primarily command line. 
+(Command line means typing instructions in a CONSOLE vs. a graphical user interface or GUI.)
+
+Download and install the R version for your OS here:
+https://cran.r-project.org/bin/
+
+2) RStudio, hopefully what you are reading this in), a GUI for R.  
+
+Download and install the FREE Rstudio here:
+https://www.rstudio.com/products/rstudio/download/
+
+3) Windows users need RTools for some algorithms.
+
+Windows users download and install RTools 3.5 or later here:
+https://cran.r-project.org/bin/windows/Rtools/
+
+4) Mac users need Xcode developer tools for some algorithms.
+
+In Finder, go to the Applications folder --> Utilities folder --> select Terminal. A new window should open up. Copy and paste, or type, the following text to the right of the $ in that new window:  
+
+xcode-select --install
+
+5) Mac users may also need the X11 program, which allows window control.
+
+Mac users download XQuartz-2.7.11.dmg for OS X 10.6.3 or later here:
+https://www.xquartz.org/
+
+5) You may also be interested in Shiny, a web app framework for R.  
+https://shiny.rstudio.com/
+
+Please download and install the latest R, RStudio, and RTools now.
+
+Most of the time experienced people struggle with R and MEM, they need to re-install R and RStudio.
+If you have an old version, please download and install the latest (vs. "updating").
+This will help ensure you're using the same version.  We've seen the updates be a little buggy.
+
+Lines here that start with the # symbol are COMMENTED OUT -- they do not get executed.
+You can take notes in the script if you comment out that line by putting # at the start.
+You can also comment or uncomment a block of code with CTRL-SHIFT-C.
+
+Windows Users:
+We recommend running RStudio as an administrator to avoid issues with permissions for files.
+To run RStudio as an administrator, right click the icon and choose "Run as Administrator"
+You can also right click the icon, choose "Properties", then in the "Shortcut" tab, then
+click the "Advanced" button and check "Run as Administrator" to always run as admin.
+
+You can be stylish and hide this output by changing the line in this CHUNK of R code to:
+results = "hide" (at the start it will say results = "markup")
+
+For more information about R chunks, see:
+https://bookdown.org/yihui/rmarkdown/r-code.html

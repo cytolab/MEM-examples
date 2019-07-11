@@ -1,0 +1,53 @@
+\name{MEM_values}
+\alias{MEM_values}
+\docType{data}
+\title{
+MEM values
+}
+\description{
+This list of 5 matrices is the output generated from \code{\link{MEM}} analysis of the \code{\link{PBMC}} dataset. It is meant to be used as input for the \code{\link{build.heatmaps}} function to generate population-specific MEM labels and clustered median and MEM score heatmaps.
+}
+\usage{data("MEM_values")}
+\format{
+  The format is:
+List of 5
+ $ MAGpop    :List of 1
+  ..$ : num [1:7, 1:25] 0.0254 0.0189 0.0207 2.5075 2.4995 ...
+  .. ..- attr(*, "dimnames")=List of 2
+  .. .. ..$ : chr [1:7] "1" "2" "3" "4" ...
+  .. .. ..$ : chr [1:25] "CD19" "CD117" "CD11b" "CD4" ...
+ $ MAGref    :List of 1
+  ..$ : num [1:7, 1:25] 0.0146 0.0209 0.0206 0.0213 0.0235 ...
+  .. ..- attr(*, "dimnames")=List of 2
+  .. .. ..$ : chr [1:7] "1" "2" "3" "4" ...
+  .. .. ..$ : chr [1:25] "CD19" "CD117" "CD11b" "CD4" ...
+ $ IQRpop    :List of 1
+  ..$ : num [1:7, 1:25] 0.5 0.5 0.5 0.68 0.655 ...
+  .. ..- attr(*, "dimnames")=List of 2
+  .. .. ..$ : chr [1:7] "1" "2" "3" "4" ...
+  .. .. ..$ : chr [1:25] "CD19" "CD117" "CD11b" "CD4" ...
+ $ IQRref    :List of 1
+  ..$ : num [1:7, 1:25] 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 ...
+  .. ..- attr(*, "dimnames")=List of 2
+  .. .. ..$ : chr [1:7] "1" "2" "3" "4" ...
+  .. .. ..$ : chr [1:25] "CD19" "CD117" "CD11b" "CD4" ...
+ $ MEM_matrix:List of 1
+  ..$ : num [1:7, 1:25] 0.014421 -0.002766 0.000195 2.956736 2.981387 ...
+  .. ..- attr(*, "dimnames")=List of 2
+  .. .. ..$ : chr [1:7] "1" "2" "3" "4" ...
+  .. .. ..$ : chr [1:25] "CD19" "CD117" "CD11b" "CD4" ...
+}
+\details{
+%%  ~~ If necessary, more details than the __description__ above ~~
+}
+\source{
+%%  ~~ reference to a publication or URL from which the data were obtained ~~
+}
+\references{
+%%  ~~ possibly secondary sources and usages ~~
+}
+\examples{
+data(MEM_values)
+## maybe str(MEM_values) ; plot(MEM_values) ...
+}
+\keyword{datasets}

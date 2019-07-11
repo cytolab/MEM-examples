@@ -1,0 +1,20 @@
+Installing Packages
+
+This section usually takes 10 to 30 minutes to download and install several packages of code.
+These code packages allow R to work with flow cytometry files (FCS files) and install several
+useful algorithms, including FlowSOM, t-SNE, MEM, and UMAP.  
+
+You may see a stop sign as they install and a download window. That is usually good.
+You should make sure you CONSOLE is visible.  
+It may ask if you want to replace "all/some/none a/s/n".  
+In this case, type "a" in the console and press ENTER to update all.
+
+After installing in each section, please check the output or console window.  You will likely
+see a lot of text and potentially some scary red text.  If the text is a WARNING, that's OK.
+If the text indicates there was an ERROR, we need to solve it.
+
+You only need to install the packages once.  
+You don't need to run this Rmarkdown file before each analysis. 
+But it's not a bad idea to update things once in a while.
+
+You can hide this output (results = "hide") once you know this info.

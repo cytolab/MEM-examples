@@ -1,0 +1,17 @@
+Package: MEM
+Type: Package
+Title: Marker Enrichment Modeling (MEM)
+Version: 2.0.0
+Date: 2019-03-08
+Author: Kirsten Diggins, Sierra Barone, Jonathan Irish
+Maintainer: Kirsten Diggins <kediggins@gmail.com> and Sierra Barone <sierrambarone@gmail.com>
+Description: MEM automatically generates and displays quantitative labels for cell population that have been identified from single-cell data. Labels convey a list of measured features and the features' levels of relative enrichment on each population.
+License: See associated LICENSE file for Marker Enrichment Modeling (MEM) End User License Agreement
+LazyData: TRUE
+Imports: gplots, tools, flowCore, grDevices, stats, utils, matrixStats
+Collate: 'MEM_function.R''create_labels_txt.R''IQR_thresh.R''build_heatmaps.R''add_cluster_ID.R''add_fileID_to_clusterID.R''choose_reference_pop.R''choose_markers.R''create_labels.R''format_data.R''get_files.R''rename_markers.R''MEM_RMSD.R''zero_reference.R'
+BiocViews: Proteomics, SystemsBiology, Classification, FlowCytometry, DataRepresentation, DataImport, CellBiology
+Depends: R(>= 2.10.0)
+Suggests: knitr,
+    rmarkdown
+VignetteBuilder: knitr
