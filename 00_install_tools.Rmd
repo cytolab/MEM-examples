@@ -76,7 +76,6 @@ library(MEM)
 # OR 
 #install.packages("devtools", repos = "http://cran.us.r-project.org")
 #devtools::install_github("JonathanIrish/MEMv3")
-
 ```
 ```{r install_last_packages, echo=FALSE, results = "markup"}
 # install the last packages for UMAP, t-SNE and other tools
@@ -98,5 +97,5 @@ library(RColorBrewer)
 install.packages('tinytex', repos = "http://cran.us.r-project.org")
 
 # setup the external stuff and configure
-tinytex::install_tinytex()
+tinytex::install_tinytex(force = TRUE)
 ```

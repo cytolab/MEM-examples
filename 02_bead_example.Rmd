@@ -73,7 +73,10 @@ overall_seed = 43
 ```{r UMAP}
 # Run UMAP on chosen markers
 set.seed(overall_seed)
-myumap <- umap(transformed.chosen.markers, ret_model = TRUE, n_threads = 1)
+myumap <- umap(transformed.chosen.markers, 
+               ret_model = TRUE, 
+               n_threads = 1, 
+               verbose = TRUE)
 umap.data = as.data.frame(myumap$embedding)
 
 range <- apply(apply(umap.data, 2, range), 2, diff)
