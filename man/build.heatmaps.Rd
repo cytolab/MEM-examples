@@ -7,13 +7,14 @@
     Takes matrix list generated from \code{\link{MEM}} as input and outputs MEM labels, heatmap of population median values, and heatmap of MEM scores.
 }
 \usage{
-    build.heatmaps(MEM_vals, cluster.MEM = "none", cluster.medians = "none", cluster.IQRs, display.thresh = 0,
-    newWindow.heatmaps=FALSE, output.files = FALSE, labels = FALSE, only.MEMheatmap = FALSE)
+    build.heatmaps(exp_data, cluster.MEM = "none", cluster.medians = "none", 
+    cluster.IQRs = "none", newWindow.heatmaps=FALSE, display.thresh = 0, 
+    output.files = FALSE, labels = FALSE, only.MEMheatmap = FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
     \item{exp_data}{
-        List of matrices generated as output from \code{\link{MEM}}
+        List of matrices generated as output from \code{\link{MEM} aka MEM_values}
     }
     \item{cluster.MEM}{
         \code{"none"},\code{"row"},\code{"col"},or \code{"both"}; which dimension(s) of the MEM heatmap to hierarchically cluster. See \code{Details} for more information.
@@ -50,7 +51,7 @@
 Diggins et al., Nature Methods, 2017
 }
 \author{
-Kirsten Diggins
+Kirsten Diggins, Sierra Barone, Jonathan Irish
 }
 \note{
 
@@ -63,4 +64,8 @@ Kirsten Diggins
 \examples{
 ##---- Should be DIRECTLY executable !! ----
 ##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.}
+##--	or do  help(data=index)  for the standard data sets.
+
+build.heatmaps(MEM_values, cluster.MEM = "both", cluster.medians = "none", 
+    cluster.IQRs = "none", newWindow.heatmaps=FALSE, display.thresh = 1, 
+    output.files = TRUE, labels = FALSE, only.MEMheatmap = FALSE)}

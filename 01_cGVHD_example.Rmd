@@ -140,7 +140,7 @@ build.heatmaps(
 # Run UMAP on scaled markers
 set.seed(overall_seed)
 myumap <- umap(scaled.data, 
-               ret_model = TRUE,
+               ret_model = TRUE, 
                n_threads = 1,
                verbose = TRUE)
 umap.data = as.data.frame(myumap$embedding)

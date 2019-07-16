@@ -23,7 +23,7 @@ The function then outputs a clustered heatmap of Percent_max_RMSD values and the
 
 }
 \usage{
-MEM_RMSD(data,format=NULL,newWindow.heatmaps=FALSE,output.matrix=FALSE)
+MEM_RMSD(data, format=NULL, newWindow.heatmaps=FALSE, output.matrix=FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

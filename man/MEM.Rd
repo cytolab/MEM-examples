@@ -1,6 +1,5 @@
 \name{MEM}
 \alias{MEM}
-\alias{Marker Enrichment Modeling}
 \title{
 Marker Enrichment Modeling
 }
@@ -8,9 +7,9 @@ Marker Enrichment Modeling
 The MEM function takes pre-clustered, single-cell data as input and calculates relative enrichment scores for each marker on each population.
 }
 \usage{
-MEM <- function(exp_data,transform=FALSE, cofactor=1,choose.markers=FALSE,markers="all",choose.ref=FALSE,
-zero.ref=FALSE,rename.markers=FALSE,new.marker.names="none",file.is.clust=FALSE,add.fileID=FALSE,
-IQR.thresh=NULL,output.prescaled.MEM=FALSE)
+MEM_values <- MEM(exp_data, transform=FALSE, cofactor=1, choose.markers=FALSE, markers="all",
+choose.ref=FALSE, zero.ref=FALSE, rename.markers=FALSE, new.marker.names="none",
+file.is.clust=FALSE, add.fileID=FALSE, IQR.thresh=NULL, output.prescaled.MEM=FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -21,7 +20,7 @@ list of file names or a \code{matrix} or \code{data.frame} object where the last
 \code{TRUE} or \code{FALSE}; whether or not to apply \code{\link{asinh}} transformation to the data. Default is \code{FALSE}.
 }
   \item{cofactor}{
-numeric; if \code{transform} is \code{TRUE}, what cofactor should be applied. Default is 1.
+numeric; if \code{transform} is \code{TRUE}, what cofactor should be applied. Default is 1. Arcsinh transformed value = arcsinh(raw value/cofactor)
 }
   \item{choose.markers}{
 \code{TRUE} or \code{FALSE}; whether or not the user wants to choose the markers (columns) for analysis. If data contains markers that will not be used in the analysis (e.g. SSC or FSC channels in flow data), should be set to \code{TRUE}. If \code{FALSE}, either all of the markers in the experiment data will be used in MEM or the user can pass a character string of the markers to be used in the analysis using the function call (markers) below.
@@ -77,7 +76,7 @@ However, the function can calculate an IQR threshold using the input data. If IQ
 Diggins et al., Nature Methods, 2017
 }
 \author{
-Kirsten Diggins
+Kirsten Diggins, Sierra Barone, and Jonathan Irish
 }
 \note{
 The object generated from \code{\link{MEM}} is meant to be passed to \code{\link{build.heatmaps}} which will generate MEM labels and heatmaps.
@@ -95,5 +94,7 @@ The object generated from \code{\link{MEM}} is meant to be passed to \code{\link
 ## For single file or object input (e.g. PBMC), input data directly into MEM function
 
 ## User inputs
-MEM_values = MEM(PBMC, transform=TRUE, cofactor=15, choose.markers=FALSE, markers="all", choose.ref=FALSE, zero.ref = FALSE, rename.markers=FALSE, new.marker.names="none", IQR.thresh=NULL)}
+MEM_values = MEM(PBMC, transform=TRUE, cofactor=15, choose.markers=FALSE, 
+markers="all", choose.ref=FALSE, zero.ref = FALSE, rename.markers=FALSE, 
+new.marker.names="none", IQR.thresh=NULL)}
 

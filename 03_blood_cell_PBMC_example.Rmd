@@ -79,8 +79,8 @@ set.seed(overall_seed)
 myumap <-
   umap(transformed.chosen.markers,
        ret_model = TRUE,
-       verbose = TRUE,
-       n_threads = 1)
+       n_threads = 1, 
+       verbose = TRUE)
 umap.data = as.data.frame(myumap$embedding)
 
 range <- apply(apply(umap.data, 2, range), 2, diff)
