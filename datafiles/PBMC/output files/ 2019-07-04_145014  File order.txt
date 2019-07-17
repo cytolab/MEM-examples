@@ -1,7 +1,0 @@
-"1" "CD4Tcells_PBMC.fcs"
-"2" "CD8Tcells_PBMC.fcs"
-"3" "DCs_PBMC.fcs"
-"4" "IgMnegBcells_PBMC.fcs"
-"5" "IgMposBcells_PBMC.fcs"
-"6" "Monocytes_PBMC.fcs"
-"7" "NKcells_PBMC.fcs"
