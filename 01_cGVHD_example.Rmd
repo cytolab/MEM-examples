@@ -30,15 +30,11 @@ choosing to Run All Chunks) should take a minute or two.
 library(FlowSOM)
 library(flowCore)
 library(Biobase)
-library(gplots)
 library(ggplot2)
-library(hexbin)
 library(MEM)
-library(tidyverse)
 library(Rtsne)
 library(uwot)
-library(viridis)
-library(ggExtra)
+library(tidyverse)
 
 # Load data file into R
 setwd(paste(getwd(), "/datafiles/cGVHD", sep = ""))
@@ -146,7 +142,7 @@ MEM.values.tf = MEM(
 
 # build MEM heatmap and output enrichment scores
 build.heatmaps(
-  MEM.values.tf,
+  MEM.values.tf,          # input MEM values
   cluster.MEM = "both",
   display.thresh = 1,
   newWindow.heatmaps = FALSE,
@@ -313,7 +309,7 @@ all.MEM.values = as.matrix(rbind(tf.MEM.scores, uf.MEM.scores, orig.MEM.scores))
 
 RMSD_vals <-
   MEM_RMSD(
-    all.MEM.values,
+    all.MEM.values,               # input all MEM values from three clusterings
     format = NULL,
     newWindow.heatmaps = FALSE,
     output.matrix = FALSE
