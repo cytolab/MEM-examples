@@ -28,7 +28,8 @@ two to five minutes.
 
 ```{r setup, include=FALSE}
 # Load all libraries
-# If you get an error message, you will need to try re-installing packages
+# If you get an error message, you will need to try re-installing packages by 
+# going back to the 00_install_tools.RMD script
 library(FlowSOM)
 library(flowCore)
 library(Biobase)
@@ -43,31 +44,33 @@ library(ggExtra)
 ```
 
 ```{r MEM on Fig.1 Data, warning=FALSE}
+# read files into R by setting working directory and directing R to the fcs file
+# type
 setwd(paste(getwd(), "/datafiles/PBMC", sep = ""))
 files <-  dir(pattern = "*.fcs")
 print(files)
 
 # Run MEM on the manually gated populations (each FCS files is a pop) from paper
 MEM.values.orig = MEM(
-  files,
-  transform = TRUE,
-  cofactor = 15,
+  files,                # input data (last column must contain cluster values)
+  transform = TRUE,     # apply arcsinh transformation to the data
+  cofactor = 15,        # set cofactor
   choose.markers = FALSE,
-  markers = "12:20,22:23,25:33,35:36,38:40",
+  markers = "12:20,22:23,25:33,35:36,38:40",  # choose columns run MEM on
   choose.ref = FALSE,
   zero.ref = FALSE,
   rename.markers = FALSE,
   new.marker.names = "CD19,CD117,CD11b,CD4,CD8,CD20,CD34,CD61,CD123,CD45RA,CD45,CD10,CD33,CD11c,CD14,CD69,CD15,CD16,CD44,CD38,CD25,CD3,IgM,HLA-DR,CD56",
-  file.is.clust = TRUE,
+  file.is.clust = TRUE, # each file is a "cluster" or cell subset
   add.fileID = FALSE,
   IQR.thresh = NULL
 )
 
 # build MEM heatmap and output enrichment scores
 build.heatmaps(
-  MEM.values.orig,
+  MEM.values.orig,      # input MEM values 
   cluster.MEM = "both",
-  display.thresh = 3,
+  display.thresh = 3,   # display threshold for MEM scores
   newWindow.heatmaps = FALSE,
   output.files = FALSE,
   labels = TRUE,
@@ -81,10 +84,15 @@ combined.data = as.data.frame(do.call(rbind, mapply(
   cbind, data, "File ID" = ID, SIMPLIFY = F
 )))
 combined.data$`File ID` <- as.numeric(combined.data$`File ID`)
+
+# choose markers to use for downstream analysis and apply arcsinh
+# transformation with a cofactor of 15
 chosen.markers = combined.data[, c(12:20, 22:23, 25:33, 35:36, 38:40)]
 transformed.chosen.markers <- chosen.markers %>%
   mutate_all(function(x)
     asinh(x / 15))
+
+# set seed for reproducible results
 overall_seed = 43
 ```
 
@@ -92,7 +100,7 @@ overall_seed = 43
 # Run UMAP on all surface markers
 set.seed(overall_seed)
 myumap <-
-  umap(transformed.chosen.markers,
+  umap(transformed.chosen.markers,  # input scaled data
        ret_model = TRUE,
        n_threads = 1, 
        verbose = TRUE)
@@ -101,7 +109,7 @@ umap.data = as.data.frame(myumap$embedding)
 range <- apply(apply(umap.data, 2, range), 2, diff)
 graphical.ratio <- (range[1] / range[2])
 
-# UMAP flat dot plot and density dot plot
+# UMAP flat dot plot and density dot plot (1 dot = 1 cell)
 UMAP.plot <- data.frame(x = umap.data[, 1], y = umap.data[, 2])
 
 ggplot(UMAP.plot) + coord_fixed(ratio = graphical.ratio) + 
@@ -125,7 +133,7 @@ ggplot(UMAP.plot, aes(x = x, y = y)) + coord_fixed(ratio = graphical.ratio)  +
 # Run FlowSOM on the UMAP axes
 umap.matrix <- as.matrix(umap.data)
 
-# create flowFrame
+# create flowFrame for FlowSOM input
 UMAP.metadata <-
   data.frame(name = dimnames(umap.matrix)[[2]],
              desc = paste('UMAP', dimnames(umap.matrix)[[2]]))
@@ -139,10 +147,10 @@ umap.flowframe <- new("flowFrame",
 # implement the FlowSOM on the data
 fsom <-
   FlowSOM(
-    umap.flowframe,
-    colsToUse = c(1:2),
-    nClus = 10,
-    seed = overall_seed
+    umap.flowframe,      # input flowframe 
+    colsToUse = c(1:2),  # columns to use 
+    nClus = 10,          # target number of clusters 
+    seed = overall_seed  # set seed
   )
 FlowSOM.clusters <-
   as.matrix(fsom[[2]][fsom[[1]]$map$mapping[, 1]])
@@ -157,16 +165,16 @@ ggplot(UMAP.plot) + coord_fixed(ratio=graphical.ratio) +
 ```
 
 ```{r MEM on UMAP/FlowSOM Clusters}
-# Run MEM on the FlowSOM clusters from UMAP
+# Run MEM on the FlowSOM clusters found from using UMAP axes
 cluster = as.numeric(as.vector((FlowSOM.clusters)))
 MEM.data = cbind(transformed.chosen.markers, cluster)
 
 MEM.values.uf = MEM(
-  MEM.data,
-  transform = FALSE,
-  cofactor = 15,
+  MEM.data,              # input data (last column must contain cluster values)
+  transform = FALSE,     # data is already scaled
+  cofactor = 1,
   choose.markers = FALSE,
-  markers = "all",
+  markers = "all",       # use all chosen markers from previous selection
   choose.ref = FALSE,
   zero.ref = FALSE,
   rename.markers = FALSE,
@@ -178,9 +186,9 @@ MEM.values.uf = MEM(
 
 # build MEM heatmap and output enrichment scores
 build.heatmaps(
-  MEM.values.uf,
+  MEM.values.uf,                # input MEM values
   cluster.MEM = "both",
-  display.thresh = 3,
+  display.thresh = 3,           # display threshold for MEM scores
   newWindow.heatmaps = FALSE,
   output.files = FALSE,
   labels = TRUE,
@@ -190,7 +198,8 @@ build.heatmaps(
 
 
 ```{r RMSD for All Clusters}
-# RMSD to compare labels from all populations
+# RMSD to compare labels from all populations (FlowSOM clusters vs. manually
+# gated cell populations)
 orig.MEM.scores = as.data.frame(MEM.values.orig[[5]])
 rownames(orig.MEM.scores) = paste0(rownames(orig.MEM.scores), " (Fig.1)")
 uf.MEM.scores = as.data.frame(MEM.values.uf[[5]])
@@ -199,7 +208,8 @@ all.MEM.values = as.matrix(rbind(uf.MEM.scores, orig.MEM.scores))
 
 RMSD_vals <-
   MEM_RMSD(
-    all.MEM.values,
+    all.MEM.values,                # input all MEM values from clustering and 
+                                   # expert gating
     format = NULL,
     newWindow.heatmaps = FALSE,
     output.matrix = FALSE
