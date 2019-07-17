@@ -16,15 +16,11 @@ editor_options:
 library(FlowSOM)
 library(flowCore)
 library(Biobase)
-library(gplots)
 library(ggplot2)
-library(hexbin)
 library(MEM)
 library(tidyverse)
 library(Rtsne)
 library(uwot)
-library(viridis)
-library(ggExtra)
 library(RColorBrewer)
 
 choose.markers <- function(exp_data) {
@@ -37,7 +33,8 @@ choose.markers <- function(exp_data) {
     for (i in 1:length(sep_vals)) {
         val = sep_vals[i]
         if (length(unlist(strsplit(val, ":"))) > 1) {
-            new_val = as.numeric(unlist(strsplit(val, ":"))[1]):as.numeric(unlist(strsplit(val, ":"))[2])
+            new_val = as.numeric(unlist(strsplit(val, ":"))[1]):
+              as.numeric(unlist(strsplit(val, ":"))[2])
         } else{
             new_val = as.numeric(sep_vals[i])
         }
@@ -49,31 +46,39 @@ choose.markers <- function(exp_data) {
 ```
 
 ```{r read_data_files, warning=FALSE}
-# read FCS files into R; make sure FCS files are in the my_data_files
+# read FCS files into R; make sure FCS files are in the my_data_files folder 
 setwd(paste(getwd(), "/datafiles/my_data_files", sep = ""))
 my.files <-  dir(pattern = "*.fcs")
 
 data.lists <- lapply(lapply(my.files, read.FCS), exprs)
-my.data = as.data.frame(do.call(rbind, mapply(cbind, data.lists, "File ID" = c(1:length(data.lists)), SIMPLIFY = F)))
+
+# variable my.data in environment should contain a concatenation of all cells
+# and all measure features 
+my.data = as.data.frame(do.call(rbind, mapply(cbind, data.lists, "File ID" = 
+                                        c(1:length(data.lists)), SIMPLIFY = F)))
 colnames(my.data)[1:length(my.data) - 1] <- as.character(read.FCS
 (my.files[[1]])@parameters@data[["desc"]])
 ```
 
 ```{r select_and_scale}
-# select all channels with markers on them by opening console below
+# select all channels with markers (that you want to apply scales to) by opening
+# console below
 my.marker.data = as.data.frame(as.data.frame(my.data)[,c(choose.markers(my.data))])
 
-# set the cofactor
-cofactor = 5
+# set the cofactor for all features
+cofactor = 9000
 
-# if all of your channels have the same cofactor 
+# if all of your channels have the same cofactor, this will apply an arcsih
+# transformation to the previously selected markers
 my.markers.transformed <- my.marker.data %>%
   mutate_all(function(x)
     asinh(x / cofactor))
 ```
 ```{r run_UMAP}
 # Run UMAP on chosen markers
-# select all channels to use in UMAP by opening console below
+
+# select all channels to use in UMAP by opening console below similar to
+# what you did
 umap.markers = as.data.frame(as.data.frame(my.markers.transformed)[,c(choose.markers(my.markers.transformed))])
 
 myumap <- umap(umap.markers, 
