@@ -46,7 +46,6 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install("flowCore")
 BiocManager::install("FlowSOM")
-
 ```
 ```{r test_flow_installs, echo=FALSE, results = "markdown"}
 # Load and test whether bioconductor and flow packages are installed
@@ -84,7 +83,7 @@ library(MEM)
 
 # OR 
 #install.packages("devtools", repos = "http://cran.us.r-project.org")
-#devtools::install_github("JonathanIrish/MEMv3")
+#devtools::install_github("cytolab/mem")
 ```
 ```{r install_last_packages, echo=FALSE, results = "markup"}
 # install the last packages for UMAP, t-SNE and other tools
@@ -101,7 +100,8 @@ library(Rtsne)
 library(uwot)
 library(RColorBrewer)
 ```
-```{r install_tinytex, echo=FALSE, results = "markup"}
+This final section is optional. Allows you to knit RMD to html or PDF.
+```{r optional_install_tinytex, echo=FALSE, results = "markup"}
 # install the R package
 install.packages('tinytex', repos = "http://cran.us.r-project.org")
 
