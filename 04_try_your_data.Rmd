@@ -94,8 +94,7 @@ ggplot(UMAP.plot, aes(x=x, y=y)) + coord_fixed(ratio = graphical.ratio)  + geom_
   scale_y_continuous(expand = c(0.1,0)) + labs(x = "UMAP 1", y = "UMAP 2") + theme_bw()
 ```
 
-
-```{r FlowSOM on UMAP}
+```{r run_FlowSOM_on_UMAP}
 # enter target number of clusters
 target.clusters = 20
 
@@ -118,10 +117,6 @@ input.flowframe <- new("flowFrame",
 fsom <-
   FlowSOM(
     input.flowframe,
-    compensate = FALSE,
-    transform = FALSE,
-    toTransform = c(1:2),
-    scale = TRUE,
     colsToUse = c(1:2),
     nClus = target.clusters,
     seed = 1
@@ -144,7 +139,7 @@ ggplot(UMAP.plot) + coord_fixed(ratio=graphical.ratio) +
   scale_color_manual(values = values)  
 ```
 
-```{r MEM on UMAP/FlowSOM Clusters}
+```{r run_MEM_on_Clusters}
 # Run MEM on the FlowSOM clusters from UMAP
 cluster = as.numeric(as.vector((FlowSOM.clusters)))
 MEM.data = cbind(my.markers.transformed, cluster)
