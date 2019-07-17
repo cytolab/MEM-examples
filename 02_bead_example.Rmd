@@ -10,13 +10,21 @@ output:
 editor_options:
   chunk_output_type: inline
 ---
+
+This dataset contains 38 mass cytometry compensation beads (11,400 cells total),
+each of which is supposed to be positive for only 1 marker and negative for 37. 
+
+Each section of code should run in about 30 seconds or less. Running the entire 
+script from start to finish (by choosing to Run All Chunks) should take a minute 
+or two. 
+
 ```{r setup, include=FALSE}
 # Load all libraries
-# If you get an error message, you will need to try re-installing packages
+# If you get an error message, you will need to try re-installing packages by 
+# going back to the 00_install_tools.RMD script
 library(FlowSOM)
 library(flowCore)
 library(Biobase)
-library(gplots)
 library(ggplot2)
 library(hexbin)
 library(MEM)
@@ -35,12 +43,13 @@ file <-  dir(pattern = "*.fcs")
 
 # Run MEM
 MEM.values.orig = MEM(
-  file,
-  transform = TRUE,
-  cofactor = 5,
+  file,                     # input data (last column must contain cluster 
+                            # values)
+  transform = TRUE,         # arcsinh transformation of data 
+  cofactor = 5,             # set cofactor
   choose.markers = FALSE,
   markers = "2,13,14,21,23:55",
-  choose.ref = FALSE,
+  choose.ref = FALSE,       
   zero.ref = FALSE,
   rename.markers = FALSE,
   file.is.clust = FALSE,
@@ -50,9 +59,8 @@ MEM.values.orig = MEM(
 
 # build MEM heatmap and output enrichment scores
 build.heatmaps(
-  MEM.values.orig,
+  MEM.values.orig,           # input MEM values
   cluster.MEM = "none",
-  cluster.medians = "none",
   display.thresh = 1,
   newWindow.heatmaps = FALSE,
   output.files = FALSE,
@@ -60,18 +68,20 @@ build.heatmaps(
   only.MEMheatmap = TRUE
 )
 
-# prepare data for use in UMAP
+# prepare data for use in UMAP and downstream analysis
 FCS = read.FCS(file)
 data.df = as.data.frame(FCS@exprs)
 chosen.markers = data.df[, c(2, 13, 14, 21, 23:55)]
 transformed.chosen.markers <- chosen.markers %>%
   mutate_all(function(x)
     asinh(x / 5))
+
+# set seed for reproducible results
 overall_seed = 43
 ```
 
 ```{r UMAP}
-# Run UMAP on chosen markers
+# Run UMAP on 37 chosen markers
 set.seed(overall_seed)
 myumap <- umap(transformed.chosen.markers, 
                ret_model = TRUE, 
@@ -85,11 +95,14 @@ graphical.ratio <- (range[1]/range[2])
 # UMAP flat dot plot and density dot plot
 UMAP.plot <- data.frame(x = umap.data[,1], y = umap.data[,2])
 
-ggplot(UMAP.plot) + coord_fixed(ratio=graphical.ratio) + geom_point(aes(x=x, y=y), cex = 1) + labs( x = "UMAP 1", y = "UMAP 2", title = "Mass Cytometry Beads") + theme_bw()
+ggplot(UMAP.plot) + coord_fixed(ratio=graphical.ratio) + 
+  geom_point(aes(x=x, y=y), cex = 1) + labs( x = "UMAP 1", y = "UMAP 2", 
+        title = "Mass Cytometry Beads") + theme_bw()
 
-ggplot(UMAP.plot, aes(x=x, y=y)) + coord_fixed(ratio = graphical.ratio)  + geom_bin2d(bins = 128) + 
-  scale_fill_viridis_c(option = "A", trans = "sqrt") + scale_x_continuous(expand = c(0.1,0)) + 
-  scale_y_continuous(expand = c(0.1,0)) + labs(x = "UMAP 1", y = "UMAP 2",title = "Mass Cytometry Beads") + theme_bw()
+ggplot(UMAP.plot, aes(x=x, y=y)) + coord_fixed(ratio = graphical.ratio)  + 
+  geom_bin2d(bins = 128) + scale_fill_viridis_c(option = "A", trans = "sqrt") + 
+  scale_x_continuous(expand = c(0.1,0)) + scale_y_continuous(expand = c(0.1,0)) +
+  labs(x = "UMAP 1", y = "UMAP 2", title = "Mass Cytometry Beads") + theme_bw()
 ```
 
 
@@ -108,14 +121,10 @@ umap.flowframe <- new("flowFrame",
                       exprs = umap.mat,
                       parameters = AnnotatedDataFrame(UMAP.metadata))
 
-# implement the FlowSOM on the data
+# implement the FlowSOM on the UMAP axes
 fsom <-
   FlowSOM(
     umap.flowframe,
-    compensate = FALSE,
-    transform = FALSE,
-    toTransform = c(1:2),
-    scale = TRUE,
     colsToUse = c(1:2),
     nClus = 38,
     seed = overall_seed
@@ -139,7 +148,7 @@ ggplot(UMAP.plot) + coord_fixed(ratio=graphical.ratio) +
 ```
 
 ```{r MEM on UMAP/FlowSOM Clusters}
-# Run MEM on the FlowSOM clusters from UMAP
+# Run MEM on the FlowSOM clusters found by using the UMAP axes
 cluster = as.numeric(as.vector((FlowSOM.clusters)))
 MEM.data = cbind(transformed.chosen.markers, cluster)
 
@@ -186,5 +195,4 @@ RMSD_vals <-
     newWindow.heatmaps = FALSE,
     output.matrix = FALSE
   )
-
 ```
