@@ -184,7 +184,7 @@ build.heatmaps(
   cluster.MEM = "none",
   cluster.medians = "none",
   display.thresh = 1,
-  newWindow.heatmaps = TRUE,
+  newWindow.heatmaps = FALSE,
   output.files = FALSE,
   labels = FALSE,
   only.MEMheatmap = TRUE
