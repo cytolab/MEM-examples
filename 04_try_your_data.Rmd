@@ -151,7 +151,7 @@ values = sample(col_vector)
 
 # plot FlowSOM clusters on UMAP axes
 ggplot(UMAP.plot) + coord_fixed(ratio=graphical.ratio) + 
-  geom_point(aes(x=x, y=y, color=FlowSOM.clusters),cex = 1.5) + 
+  geom_point(aes(x=x, y=y, color=as.factor(cluster)),cex = 1.5) + 
   guides(colour = guide_legend(override.aes = list(size=5), nrow = 13)) +
   labs(x = "UMAP 1", y = "UMAP 2",title = "FlowSOM Clustering on UMAP Axes", 
        color = "FlowSOM Cluster") + theme_bw() + 
@@ -181,11 +181,11 @@ MEM.values.uf = MEM(
 # build MEM heatmap and output enrichment scores
 build.heatmaps(
   MEM.values.uf,
-  cluster.MEM = "none",
+  cluster.MEM = "both",
   cluster.medians = "none",
   display.thresh = 1,
   newWindow.heatmaps = TRUE,
-  output.files = FALSE,
+  output.files = TRUE,
   labels = FALSE,
   only.MEMheatmap = TRUE
 )
