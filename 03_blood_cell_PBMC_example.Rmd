@@ -149,7 +149,7 @@ fsom <-
   FlowSOM(
     umap.flowframe,      # input flowframe 
     colsToUse = c(1:2),  # columns to use 
-    nClus = 10,          # target number of clusters 
+    nClus = 15,          # target number of clusters 
     seed = overall_seed  # set seed
   )
 FlowSOM.clusters <-
