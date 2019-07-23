@@ -46,9 +46,14 @@ choose.markers <- function(exp_data) {
 }
 ```
 
+<<<<<<< HEAD
 ```{r read_data_files, warning=FALSE}
+=======
+```{r read_data_files_fcs, warning=FALSE}
+>>>>>>> ec56fcc7a7df5cf1fab0d4e2bfb58d232a4d56e5
 # read FCS files into R; make sure FCS files are in the my_data_files folder 
 setwd(paste(getwd(), "/datafiles/my_data_files", sep = ""))
+
 my.files <-  dir(pattern = "*.fcs")
 
 data.lists <- lapply(lapply(my.files, read.FCS), exprs)
@@ -60,7 +65,19 @@ my.data = as.data.frame(do.call(rbind, mapply(cbind, data.lists, "File ID" =
 colnames(my.data)[1:length(my.data) - 1] <- as.character(read.FCS
 (my.files[[1]])@parameters@data[["desc"]])
 ```
+```{r read_data_files_csv, warning=FALSE}
+# read FCS files into R; make sure FCS files are in the my_data_files folder 
+setwd(paste(getwd(), "/datafiles/my_data_files", sep = ""))
 
+my.files <-  dir(pattern = "*.csv")
+
+data.lists <- lapply(my.files, read.csv)
+
+# variable my.data in environment should contain a concatenation of all cells
+# and all measure features 
+my.data = as.data.frame(do.call(rbind, mapply(cbind, data.lists, "File ID" = 
+                                        c(1:length(data.lists)), SIMPLIFY = F)))
+```
 ```{r select_and_scale}
 # select all channels with markers (that you want to apply scales to) by opening
 # console below
@@ -79,13 +96,18 @@ my.markers.transformed <- my.marker.data %>%
 # Run UMAP on chosen markers
 
 # select all channels to use in UMAP by opening console below similar to
+<<<<<<< HEAD
 # what you did previously
+=======
+# what you did
+>>>>>>> ec56fcc7a7df5cf1fab0d4e2bfb58d232a4d56e5
 umap.markers = as.data.frame(as.data.frame(my.markers.transformed)[,c(choose.markers(my.markers.transformed))])
 
 myumap <- umap(umap.markers, 
                ret_model = TRUE, 
                verbose = TRUE)
 umap.data = as.data.frame(myumap$embedding)
+colnames(umap.data) <- c("UMAP1", "UMAP2")
 
 range <- apply(apply(umap.data, 2, range), 2, diff)
 graphical.ratio <- (range[1]/range[2])
@@ -143,11 +165,17 @@ ggplot(UMAP.plot) + coord_fixed(ratio=graphical.ratio) +
   labs(x = "UMAP 1", y = "UMAP 2",title = "FlowSOM Clustering on UMAP Axes", 
        color = "FlowSOM Cluster") + theme_bw() + 
   scale_color_manual(values = values)  
+
+cluster = as.numeric(as.vector((FlowSOM.clusters)))
 ```
 
 ```{r run_MEM_on_Clusters}
+<<<<<<< HEAD
 # Run MEM on the FlowSOM clusters found by using UMAP axes
 cluster = as.numeric(as.vector((FlowSOM.clusters)))
+=======
+# Run MEM on the FlowSOM clusters from UMAP
+>>>>>>> ec56fcc7a7df5cf1fab0d4e2bfb58d232a4d56e5
 MEM.data = cbind(my.markers.transformed, cluster)
 
 MEM.values.uf = MEM(
@@ -159,6 +187,7 @@ MEM.values.uf = MEM(
   choose.ref = FALSE,
   zero.ref = FALSE,
   rename.markers = FALSE,
+  new.marker.names = "none",
   file.is.clust = FALSE,
   add.fileID = FALSE,
   IQR.thresh = NULL
@@ -167,12 +196,53 @@ MEM.values.uf = MEM(
 # build MEM heatmap and output enrichment scores
 build.heatmaps(
   MEM.values.uf,
-  cluster.MEM = "none",
+  cluster.MEM = "both",
   cluster.medians = "none",
   display.thresh = 1,
-  newWindow.heatmaps = FALSE,
-  output.files = FALSE,
+  newWindow.heatmaps = TRUE,
+  output.files = TRUE,
   labels = FALSE,
   only.MEMheatmap = TRUE
 )
+```
+
+```{r export_files_fcs}
+dir.create(file.path(getwd(), "/datafiles/my_data_files/output files"), showWarnings = FALSE)
+setwd(paste(getwd(), "/datafiles/my_data_files/output files", sep = ""))
+
+data.to.export = cbind(my.data,umap.data,cluster)
+separate.files = split(data.to.export,data.to.export$`File ID`)
+for (i in 1:length(separate.files)){
+  single.file = separate.files[[i]]
+  remove.ID  = single.file[-c(ncol(my.data))]
+  mat <- as.matrix(single.file)
+# create flowFrame
+metadata <-
+  data.frame(name = dimnames(mat)[[2]],
+             desc = dimnames(mat)[[2]])
+metadata$range <- apply(apply(mat, 2, range), 2, diff)
+metadata$minRange <- apply(mat, 2, min)
+metadata$maxRange <- apply(mat, 2, max)
+export.flowframe <- new("flowFrame",
+                      exprs = mat,
+                      parameters = AnnotatedDataFrame(metadata))
+newname  = str_remove(my.files[i], ".fcs")
+  filename = paste0(newname,"_UMAP_FlowSOM.fcs")
+  write.FCS(export.flowframe,filename = filename)
+  print(i)}
+```
+
+```{r export_files csv}
+dir.create(file.path(getwd(), "/datafiles/my_data_files/output files"), showWarnings = FALSE)
+setwd(paste(getwd(), "/datafiles/my_data_files/output files", sep = ""))
+
+data.to.export = cbind(my.data,umap.data,cluster)
+separate.files = split(data.to.export,data.to.export$`File ID`)
+for (i in 1:length(separate.files)){
+  single.file = separate.files[[i]]
+  remove.ID  = single.file[-c(ncol(my.data))]
+  newname  = str_remove(my.files[i], ".csv")
+  filename = paste0(newname,"_UMAP_FlowSOM.csv")
+  write.csv(single.file,file = filename)
+  print(i)}
 ```
