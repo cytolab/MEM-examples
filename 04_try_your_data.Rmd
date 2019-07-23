@@ -173,6 +173,7 @@ MEM.values.uf = MEM(
   choose.ref = FALSE,
   zero.ref = FALSE,
   rename.markers = FALSE,
+  new.marker.names = "none",
   file.is.clust = FALSE,
   add.fileID = FALSE,
   IQR.thresh = NULL
