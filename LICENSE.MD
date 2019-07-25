@@ -1,4 +1,4 @@
-Marker Enrichment Modeling (MEM) End User License Agreement.
+Marker Enrichment Modeling (MEM) Non-Exclusive Academic Software License Agreement.
 
 This License Agreement ("Agreement") is entered into between Vanderbilt University, a private, non-profit institution of higher education in Nashville, Tennessee with offices at 1207 17th Avenue South, Suite 105, Nashville, Tennessee 37212 ("Vanderbilt") and the person representing the non-profit research and/or academic institution that registers to use the Software ("Licensee"). Prior to such registration in accordance with this Agreement, the Licensee shall have no rights or license in connection with the Software or this Agreement.
 
