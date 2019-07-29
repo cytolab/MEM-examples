@@ -46,11 +46,7 @@ choose.markers <- function(exp_data) {
 }
 ```
 
-<<<<<<< HEAD
-```{r read_data_files, warning=FALSE}
-=======
 ```{r read_data_files_fcs, warning=FALSE}
->>>>>>> ec56fcc7a7df5cf1fab0d4e2bfb58d232a4d56e5
 # read FCS files into R; make sure FCS files are in the my_data_files folder 
 setwd(paste(getwd(), "/datafiles/my_data_files", sep = ""))
 
@@ -96,11 +92,7 @@ my.markers.transformed <- my.marker.data %>%
 # Run UMAP on chosen markers
 
 # select all channels to use in UMAP by opening console below similar to
-<<<<<<< HEAD
 # what you did previously
-=======
-# what you did
->>>>>>> ec56fcc7a7df5cf1fab0d4e2bfb58d232a4d56e5
 umap.markers = as.data.frame(as.data.frame(my.markers.transformed)[,c(choose.markers(my.markers.transformed))])
 
 myumap <- umap(umap.markers, 
@@ -170,12 +162,9 @@ cluster = as.numeric(as.vector((FlowSOM.clusters)))
 ```
 
 ```{r run_MEM_on_Clusters}
-<<<<<<< HEAD
 # Run MEM on the FlowSOM clusters found by using UMAP axes
 cluster = as.numeric(as.vector((FlowSOM.clusters)))
-=======
 # Run MEM on the FlowSOM clusters from UMAP
->>>>>>> ec56fcc7a7df5cf1fab0d4e2bfb58d232a4d56e5
 MEM.data = cbind(my.markers.transformed, cluster)
 
 MEM.values.uf = MEM(
