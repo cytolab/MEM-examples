@@ -100,11 +100,3 @@ library(Rtsne)
 library(uwot)
 library(RColorBrewer)
 ```
-This final section is optional. Allows you to knit RMD to html or PDF.
-```{r optional_install_tinytex, echo=FALSE, results = "markup"}
-# install the R package
-install.packages('tinytex', repos = "http://cran.us.r-project.org")
-
-# setup the external stuff and configure
-tinytex::install_tinytex(force = TRUE)
-```
