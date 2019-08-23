@@ -44,15 +44,15 @@ create.labels.txt <-
         }
         dot = rawToChar(as.raw(149))
 
-        new_rownames = paste(
-            row.names(MEM_vals_scale),
-            ":",
-            'UP',
-            posRownamesMatrix,
-            paste(dot),
-            'DN',
-            negRownamesMatrix,
-            sep = " "
+        new_rownames = paste("\n","\n",
+          row.names(MEM_vals_scale),
+          ":","\n",
+          '\U25B2',
+          posRownamesMatrix,"\n",
+          '\U25BC',
+          negRownamesMatrix,sep =""
         )
+        
+        
         return(new_rownames)
     }
