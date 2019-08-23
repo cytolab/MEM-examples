@@ -325,8 +325,6 @@ build.heatmaps <-
                 cexCol = 0.8,
                 key = TRUE,
                 col = heat_palette_MEM,
-                labRow = new_rownames,
-                margins = c(5, 70),
                 trace = "none"
                 ,
                 lhei = c(0.7, 1.5),
