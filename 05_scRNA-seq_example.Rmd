@@ -1,0 +1,268 @@
+---
+title: "Data Analysis Workflow Example Using MEM on scRNA-seq Data - IDH-A Gliomas (t-SNE, UMAP, FlowSOM, MEM, RMSD)"
+author: "Copyright (c) 2016-2019 by Kirsten Diggins, Sierra Barone, and Jonathan Irish, All Rights Reserved; see EULA-MEM.text for MEM license information"
+date: "August 2019"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+
+This data set contains 1 FCS (flow cytometry standard) file which contains IDH-A
+brain tumor cells from 10 patients. This dataset contains the 500 most variable 
+transcripts from the scRNA-seq results. 
+
+Each section of code should run in about a minute or less. Running the entire 
+script from start to finish (by choosing to Run All Chunks) should take a 
+two to five minutes. 
+
+```{r setup, include=FALSE}
+# Load all libraries
+# If you get an error message, you will need to try re-installing packages by 
+# going back to the 00_install_tools.RMD script
+library(FlowSOM)
+library(flowCore)
+library(Biobase)
+library(ggplot2)
+library(hexbin)
+library(MEM)
+library(tidyverse)
+library(Rtsne)
+library(uwot)
+library(viridis)
+library(ggExtra)
+```
+
+```{r data prep}
+# read files into R by setting working directory and directing R to the fcs file
+# type
+setwd(paste(getwd(), "/datafiles/scRNA-seq", sep = ""))
+file <-  dir(pattern = "*.fcs")
+
+# prepare data for use in UMAP
+data.ff <- read.FCS(file)
+data = as.data.frame(data.ff@exprs)
+
+# set seed for reproducible results
+overall_seed = 43
+```
+
+```{r run t-SNE}
+# Run t-SNE on scaled markers
+set.seed(overall_seed)
+mytSNE = Rtsne(
+  data[,c(1:500)],              # input scaled data
+  dims = 2,        
+  initial_dims = ncol(data),    # number of initial dimensions
+  perplexity = 30,          # perplexity (similar to # of nearest neighbors, 
+                            # will scale with data sets, cannot be greater than
+                            # the number of events minus 1 divided by 3)
+  check_duplicates = FALSE, 
+  max_iter = 5000,          # number of iterations
+  verbose = TRUE
+)
+tSNE.data = as.data.frame(mytSNE$Y)
+
+range <- apply(apply(tSNE.data, 2, range), 2, diff)
+graphical.ratio.t <- (range[1] / range[2])
+
+# t-SNE flat dot plot (1 dot = 1 patient)
+tSNE.plot <- data.frame(x = tSNE.data[, c(1)], y = tSNE.data[, c(2)])
+
+ggplot(tSNE.plot) + coord_fixed(ratio = graphical.ratio.t) + 
+  geom_point(aes(x = x, y = y), cex = 0.7) + 
+  labs(x = "t-SNE 1", y = "t-SNE 2", title = "t-SNE on IDH-A Glioma Data") + 
+  theme_bw() + 
+labs(caption = "IDH-A Glioma Data from Venteicher et al., Science 2017, 355(6332)")+ 
+  theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank())
+```
+
+```{r FlowSOM on t-SNE}
+# Run FlowSOM on the t-SNE axes
+matrix <- as.matrix(tSNE.data)
+
+# create flowFrame for FlowSOM input
+metadata <-
+  data.frame(name = dimnames(matrix)[[2]],
+             desc = paste('t-SNE', dimnames(matrix)[[2]]))
+metadata$range <- apply(apply(matrix, 2, range), 2, diff)
+metadata$minRange <- apply(matrix, 2, min)
+metadata$maxRange <- apply(matrix, 2, max)
+flowframe <- new("flowFrame",
+                      exprs = matrix,
+                      parameters = AnnotatedDataFrame(metadata))
+
+# implement the FlowSOM on the data
+fsom <-
+  FlowSOM(
+    flowframe,      # input flowframe 
+    colsToUse = c(1:2),  # columns to use 
+    nClus = 10,          # target number of clusters 
+    seed = overall_seed  # set seed
+  )
+FlowSOM.clusters.t <-
+  as.matrix(fsom[[2]][fsom[[1]]$map$mapping[, 1]])
+
+# plot FlowSOM clusters on t-SNE axes
+ggplot(tSNE.plot) + coord_fixed(ratio=graphical.ratio.t) + 
+  geom_point(aes(x=x, y=y, color=FlowSOM.clusters.t),cex = 0.7) + 
+  labs(x = "t-SNE1", y = "t-SNE 2",title = "FlowSOM Clustering on t-SNE Axes", 
+       color = "FlowSOM Cluster") + theme_bw() + 
+  guides(colour = guide_legend(override.aes = list(size=5)))+
+labs(caption = "IDH-A Glioma Data from Venteicher et al., Science 2017, 355(6332)")+ 
+  theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank())
+```
+
+```{r MEM on t-SNE/FlowSOM Clusters}
+# Run MEM on the FlowSOM clusters found from using t-SNE axes
+cluster = as.numeric(as.vector((FlowSOM.clusters.t)))
+MEM.data = cbind(data[,c(1:500)], cluster)
+
+MEM.values.tf = MEM(
+  MEM.data,              # input data (last column must contain cluster values)
+  transform = FALSE,     # data is already scaled
+  cofactor = 1,
+  choose.markers = FALSE,
+  markers = "all",       # use all chosen markers from previous selection
+  choose.ref = FALSE,
+  zero.ref = FALSE,
+  rename.markers = FALSE,
+  new.marker.names = "none",
+  file.is.clust = FALSE,
+  add.fileID = FALSE,
+  IQR.thresh = NULL
+)
+
+# build MEM heatmap and output enrichment scores
+build.heatmaps(
+  MEM.values.tf,                # input MEM values
+  cluster.MEM = "both",
+  display.thresh = 2,           # display threshold for MEM scores
+  newWindow.heatmaps = FALSE,
+  output.files = TRUE,
+  labels = TRUE,
+  only.MEMheatmap = FALSE
+)
+```
+
+```{r UMAP}
+# Run UMAP on all surface markers
+set.seed(overall_seed)
+myumap <-
+  umap(data[,c(1:500)],  # input scaled data
+       ret_model = TRUE,
+       n_threads = 1, 
+       a = 1,
+       b = 1,
+       verbose = TRUE)
+umap.data = as.data.frame(myumap$embedding)
+
+range <- apply(apply(umap.data, 2, range), 2, diff)
+graphical.ratio <- (range[1] / range[2])
+
+# UMAP flat dot plot and density dot plot (1 dot = 1 cell)
+UMAP.plot <- data.frame(x = umap.data[, 1], y = umap.data[, 2])
+
+ggplot(UMAP.plot) + coord_fixed(ratio = graphical.ratio) + 
+  geom_point(aes(x = x, y = y), cex = 0.7) + labs(x = "UMAP 1", y = "UMAP 2", 
+                                                title = "UMAP on IDH-A Glioma Data") + 
+  theme_bw() + 
+labs(caption = "IDH-A Glioma Data from Venteicher et al., Science 2017, 355(6332)")+ 
+  theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank())
+```
+
+```{r FlowSOM on UMAP}
+# Run FlowSOM on the UMAP axes
+umap.matrix <- as.matrix(umap.data)
+
+# create flowFrame for FlowSOM input
+UMAP.metadata <-
+  data.frame(name = dimnames(umap.matrix)[[2]],
+             desc = paste('UMAP', dimnames(umap.matrix)[[2]]))
+UMAP.metadata$range <- apply(apply(umap.matrix, 2, range), 2, diff)
+UMAP.metadata$minRange <- apply(umap.matrix, 2, min)
+UMAP.metadata$maxRange <- apply(umap.matrix, 2, max)
+umap.flowframe <- new("flowFrame",
+                      exprs = umap.matrix,
+                      parameters = AnnotatedDataFrame(UMAP.metadata))
+
+# implement the FlowSOM on the data
+fsom <-
+  FlowSOM(
+    umap.flowframe,      # input flowframe 
+    colsToUse = c(1:2),  # columns to use 
+    nClus = 10,          # target number of clusters 
+    seed = overall_seed  # set seed
+  )
+FlowSOM.clusters.u <-
+  as.matrix(fsom[[2]][fsom[[1]]$map$mapping[, 1]])
+
+# plot FlowSOM clusters on UMAP axes
+ggplot(UMAP.plot) + coord_fixed(ratio=graphical.ratio) + 
+  geom_point(aes(x=x, y=y, color=FlowSOM.clusters.u),cex = 0.7) + 
+  labs(x = "UMAP 1", y = "UMAP 2",title = "FlowSOM Clustering on UMAP Axes", 
+       color = "FlowSOM Cluster") + theme_bw() + 
+  guides(colour = guide_legend(override.aes = list(size=5)))+
+labs(caption = "IDH-A Glioma Data from Venteicher et al., Science 2017, 355(6332)")+ 
+  theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank())
+```
+
+
+```{r MEM on UMAP/FlowSOM Clusters}
+# Run MEM on the FlowSOM clusters found from using UMAP axes
+cluster = as.numeric(as.vector((FlowSOM.clusters.u)))
+MEM.data = cbind(data[,c(1:500)], cluster)
+
+MEM.values.uf = MEM(
+  MEM.data,              # input data (last column must contain cluster values)
+  transform = FALSE,     # data is already scaled
+  cofactor = 1,
+  choose.markers = FALSE,
+  markers = "all",       # use all chosen markers from previous selection
+  choose.ref = FALSE,
+  zero.ref = FALSE,
+  rename.markers = FALSE,
+  new.marker.names = "none",
+  file.is.clust = FALSE,
+  add.fileID = FALSE,
+  IQR.thresh = NULL
+)
+
+# build MEM heatmap and output enrichment scores
+build.heatmaps(
+  MEM.values.uf,                # input MEM values
+  cluster.MEM = "both",
+  display.thresh = 2,           # display threshold for MEM scores
+  newWindow.heatmaps = FALSE,
+  output.files = FALSE,
+  labels = TRUE,
+  only.MEMheatmap = FALSE
+)
+```
+
+```{r RMSD for All Clusters}
+# RMSD to compare labels from all populations (FlowSOM clusters vs. manually
+# gated cell populations)
+tf.MEM.scores = as.data.frame(MEM.values.tf[[5]])
+rownames(tf.MEM.scores) = paste0(rownames(tf.MEM.scores), ' (t-SNE/FS)')
+uf.MEM.scores = as.data.frame(MEM.values.uf[[5]])
+rownames(uf.MEM.scores) = paste0(rownames(uf.MEM.scores), ' (UMAP/FS)')
+
+all.MEM.values = as.matrix(rbind(tf.MEM.scores, uf.MEM.scores))
+
+RMSD_vals <-
+  MEM_RMSD(
+    all.MEM.values,                # input all MEM values from clustering and 
+                                   # expert gating
+    format = NULL,
+    newWindow.heatmaps = FALSE,
+    output.matrix = FALSE
+  )
+```
