@@ -14,17 +14,11 @@ editor_options:
 This data set contains 7 FCS (flow cytometry standard) files. Each FCS file 
 contains a cell subset that is a well-established, phenotypically distinct 
 population. This is mass cytometry data for healthy human PBMC (peripheral
-blood mononuclear cells). The populations were expert gated following a t-SNE 
-analysis. The first section of the code will return MEM labels for these 
-expert gated populations. The goal of this exercise is to generate cell subsets 
-through FlowSOM clustering following UMAP analysis, calculate MEM labels from 
-this analysis, and then compare the MEM labels to the original, expert gated
-populations using the root mean square deviation (RMSD) in the MEM labels.
+blood mononuclear cells). The populations were expert gated following a t-SNE analysis. The first section of the code will return MEM labels for these 
+expert gated populations. The goal of this exercise is to generate cell subsets through FlowSOM clustering following UMAP analysis, calculate MEM labels from this analysis, and then compare the MEM labels to the original, expert gated populations using the root mean square deviation (RMSD) in the MEM labels.
 
-
-Each section of code should run in about a minute or less. Running the entire 
-script from start to finish (by choosing to Run All Chunks) should take a 
-two to five minutes. 
+Each section of code should run in about a minute or less. Running the entire
+script from start to finish (by choosing to Run All Chunks) should take about two to five minutes. 
 
 ```{r setup, include=FALSE}
 # Load all libraries
@@ -87,8 +81,8 @@ combined.data$`File ID` <- as.numeric(combined.data$`File ID`)
 
 # choose markers to use for downstream analysis and apply arcsinh
 # transformation with a cofactor of 15
-chosen.markers = combined.data[, c(12:20, 22:23, 25:33, 35:36, 38:40)]
-transformed.chosen.markers <- chosen.markers %>%
+transformed.chosen.markers <- combined.data %>%
+  select(contains("-"),-contains("Ir")) %>%
   mutate_all(function(x)
     asinh(x / 15))
 
