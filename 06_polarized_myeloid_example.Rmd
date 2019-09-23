@@ -1,0 +1,206 @@
+---
+title: "Data Analysis Workflow Example Using MEM on Polarized Myeloid Cells (UMAP, FlowSOM, MEM, RMSD)"
+author: "Copyright (c) 2016-2019 by Kirsten Diggins, Sierra Barone, and Jonathan Irish, All Rights Reserved; see EULA-MEM.text for MEM license information"
+date: "March 2019"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+
+This data set contains 8 FCS (flow cytometry standard) files. Each FCS file contains a polarized myeloid cell population from a mass cytometry experiment in which tissues were single-cell dissociated and cultured in various cytokine stimulation conditions. The populations were computationally isolated using minimum spanning tree algorithms (SPADE). The first section of the code will return MEM labels for these populations. The goal of this exercise is to generate cell subsets through FlowSOM clustering following UMAP analysis, calculate MEM labels from this analysis, and then compare the MEM labels to the original, expert gated populations using the root mean square deviation (RMSD) in the MEM labels.
+
+Each section of code should run in about a minute or less. Running the entire script from start to finish (by choosing to Run All Chunks) should take about two to five minutes. 
+
+```{r setup, include=FALSE}
+# Load all libraries
+# If you get an error message, you will need to try re-installing packages by 
+# going back to the 00_install_tools.RMD script
+library(FlowSOM)
+library(flowCore)
+library(Biobase)
+library(ggplot2)
+library(hexbin)
+library(MEM)
+library(tidyverse)
+library(Rtsne)
+library(uwot)
+library(viridis)
+library(ggExtra)
+```
+
+```{r MEM on Fig.1 Data, warning=FALSE}
+# read files into R by setting working directory and directing R to the fcs file
+# type
+setwd(paste(getwd(), "/datafiles/MiMB", sep = ""))
+files <-  dir(pattern = "*.fcs")
+print(files)
+
+# Run MEM on the manually gated populations (each FCS files is a pop) from paper
+MEM.values.orig = MEM(
+  files,                # input data (last column must contain cluster values)
+  transform = TRUE,     # apply arcsinh transformation to the data
+  cofactor = 5,        # set cofactor
+  choose.markers = FALSE,
+  markers = "12:27,29:47",  # choose columns run MEM on
+  choose.ref = FALSE,
+  zero.ref = FALSE,
+  rename.markers = FALSE,
+  new.marker.names = "CD11b,CD19,Tim3,Slan,MerTK,CD64,CD36,CD164,CCR2,CD43,CD123,CD13,CD454RA,CD163,CD27,CD86,CD33,CD11c,CD14,CD32,S100A9,HLA-DR,CD206,CD16,CD120a,CCR7,CD8,CD25,CD3,CD68,CD9,CD45,PD-1,CD274,CD127",
+  file.is.clust = TRUE, # each file is a "cluster" or cell subset
+  add.fileID = FALSE,
+  IQR.thresh = NULL
+)
+
+# build MEM heatmap and output enrichment scores
+# build.heatmaps(
+#   MEM.values.orig,      # input MEM values 
+#   cluster.MEM = "both",
+#   display.thresh = 2,   # display threshold for MEM scores
+#   newWindow.heatmaps = FALSE,
+#   output.files = FALSE,
+#   labels = TRUE,
+#   only.MEMheatmap = FALSE
+# )
+
+# prepare data for use in UMAP
+data <- lapply(lapply(files, read.FCS), exprs)
+combined.data = as.data.frame(do.call(rbind, mapply(
+  cbind, data, "File ID" = c(1:length(data)), SIMPLIFY = F
+)))
+colnames(combined.data)[1:length(combined.data) - 1] <- as.character(read.FCS
+(files[[1]])@parameters@data[["desc"]])
+
+# choose markers to use for downstream analysis and apply arcsinh
+# transformation with a cofactor of 15
+transformed.chosen.markers <- combined.data %>%
+  select(contains("(v)"),-contains("bead")) %>%
+  mutate_all(function(x)
+    asinh(x / 5))
+
+# set seed for reproducible results
+overall_seed = 43
+```
+
+```{r UMAP}
+# Run UMAP on all surface markers
+set.seed(overall_seed)
+myumap <-
+  umap(transformed.chosen.markers,  # input scaled data
+       ret_model = TRUE,
+       n_threads = 1, 
+       verbose = TRUE)
+umap.data = as.data.frame(myumap$embedding)
+
+range <- apply(apply(umap.data, 2, range), 2, diff)
+graphical.ratio <- (range[1] / range[2])
+
+# UMAP flat dot plot and density dot plot (1 dot = 1 cell)
+UMAP.plot <- data.frame(x = umap.data[, 1], y = umap.data[, 2])
+
+ggplot(UMAP.plot) + coord_fixed(ratio = graphical.ratio) + 
+  geom_point(aes(x = x, y = y), cex = 1) + labs(x = "UMAP 1", y = "UMAP 2", 
+                                                title = "UMAP on Data") + 
+  theme_bw() + 
+  labs(caption = "Data from Roussel et al., MiMB 2019, \nFlow Repository: FR-FCM-Z2Z8")
+
+ggplot(UMAP.plot, aes(x = x, y = y)) + coord_fixed(ratio = graphical.ratio)  + 
+  geom_bin2d(bins = 128) +
+  scale_fill_viridis_c(option = "A", trans = "sqrt") + 
+  scale_x_continuous(expand = c(0.1, 0)) +
+  scale_y_continuous(expand = c(0.1, 0)) + labs(x = "UMAP 1", y = "UMAP 2", 
+                                                title = "UMAP on PBMC Data") + 
+  theme_bw() + 
+  labs(caption = "Data from Roussel et al., MiMB 2019, \nFlow Repository: FR-FCM-Z2Z8")
+```
+
+
+```{r FlowSOM on UMAP}
+# Run FlowSOM on the UMAP axes
+umap.matrix <- as.matrix(umap.data)
+
+# create flowFrame for FlowSOM input
+UMAP.metadata <-
+  data.frame(name = dimnames(umap.matrix)[[2]],
+             desc = paste('UMAP', dimnames(umap.matrix)[[2]]))
+UMAP.metadata$range <- apply(apply(umap.matrix, 2, range), 2, diff)
+UMAP.metadata$minRange <- apply(umap.matrix, 2, min)
+UMAP.metadata$maxRange <- apply(umap.matrix, 2, max)
+umap.flowframe <- new("flowFrame",
+                      exprs = umap.matrix,
+                      parameters = AnnotatedDataFrame(UMAP.metadata))
+
+# implement the FlowSOM on the data
+fsom <-
+  FlowSOM(
+    umap.flowframe,      # input flowframe 
+    colsToUse = c(1:2),  # columns to use 
+    nClus = 8,          # target number of clusters 
+    seed = overall_seed  # set seed
+  )
+FlowSOM.clusters <-
+  as.matrix(fsom[[2]][fsom[[1]]$map$mapping[, 1]])
+
+# plot FlowSOM clusters on UMAP axes
+ggplot(UMAP.plot) + coord_fixed(ratio=graphical.ratio) + 
+  geom_point(aes(x=x, y=y, color=FlowSOM.clusters),cex = 1.5) + 
+  labs(x = "UMAP 1", y = "UMAP 2",title = "FlowSOM Clustering on UMAP Axes", 
+       color = "FlowSOM Cluster") + theme_bw() + 
+  guides(colour = guide_legend(override.aes = list(size=5)))+
+  labs(caption = "Data from Roussel et al., MiMB 2019, \nFlow Repository: FR-FCM-Z2Z8")
+```
+
+```{r MEM on UMAP/FlowSOM Clusters}
+# Run MEM on the FlowSOM clusters found from using UMAP axes
+cluster = as.numeric(as.vector((FlowSOM.clusters)))
+MEM.data = cbind(transformed.chosen.markers, cluster)
+
+MEM.values.uf = MEM(
+  MEM.data,                # input data (last column must contain cluster values)
+  transform = TRUE,     # apply arcsinh transformation to the data
+  cofactor = 5,        # set cofactor
+  choose.markers = FALSE,
+  markers = "all",  # choose columns run MEM on
+  choose.ref = FALSE,
+  zero.ref = FALSE,
+  rename.markers = FALSE,
+  new.marker.names = "CD11b,CD19,Tim3,Slan,MerTK,CD64,CD36,CD164,CCR2,CD43,CD123,CD13,CD454RA,CD163,CD27,CD86,CD33,CD11c,CD14,CD32,S100A9,HLA-DR,CD206,CD16,CD120a,CCR7,CD8,CD25,CD3,CD68,CD9,CD45,PD-1,CD274,CD127",
+  file.is.clust = TRUE, # each file is a "cluster" or cell subset
+  add.fileID = FALSE,
+  IQR.thresh = NULL
+)
+
+# build MEM heatmap and output enrichment scores
+build.heatmaps(
+  MEM.values.uf,                # input MEM values
+  cluster.MEM = "both",
+  display.thresh = 2,           # display threshold for MEM scores
+  newWindow.heatmaps = FALSE,
+  output.files = FALSE,
+  labels = TRUE,
+  only.MEMheatmap = FALSE
+)
+```
+
+
+```{r RMSD for All Clusters}
+# RMSD to compare labels from all populations (FlowSOM clusters vs. manually
+# gated cell populations)
+orig.MEM.scores = as.data.frame(MEM.values.orig[[5]])
+rownames(orig.MEM.scores) = paste0(rownames(orig.MEM.scores), " (Fig.1)")
+uf.MEM.scores = as.data.frame(MEM.values.uf[[5]])
+rownames(uf.MEM.scores) = paste0(rownames(uf.MEM.scores), ' (UMAP)')
+all.MEM.values = as.matrix(rbind(uf.MEM.scores, orig.MEM.scores))
+
+RMSD_vals <-
+  MEM_RMSD(
+    all.MEM.values,                # input all MEM values from clustering and 
+                                   # expert gating
+    format = NULL,
+    newWindow.heatmaps = FALSE,
+    output.matrix = FALSE
+  )
+```
