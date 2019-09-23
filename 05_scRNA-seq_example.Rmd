@@ -11,13 +11,9 @@ editor_options:
   chunk_output_type: inline
 ---
 
-This data set contains 1 FCS (flow cytometry standard) file which contains IDH-A
-brain tumor cells from 10 patients. This dataset contains the 500 most variable 
-transcripts from the scRNA-seq results. 
+This data set contains 1 FCS (flow cytometry standard) file which contains IDH-A brain tumor cells from 10 patients. This dataset contains the 500 most variable transcripts from the scRNA-seq results. 
 
-Each section of code should run in about a minute or less. Running the entire 
-script from start to finish (by choosing to Run All Chunks) should take a 
-two to five minutes. 
+Each section of code should run in about a minute or less. Running the entire script from start to finish (by choosing to Run All Chunks) should take a two to five minutes. 
 
 ```{r setup, include=FALSE}
 # Load all libraries
@@ -46,6 +42,8 @@ file <-  dir(pattern = "*.fcs")
 data.ff <- read.FCS(file)
 data = as.data.frame(data.ff@exprs)
 
+transcript.data = data[,c(1:500)]
+
 # set seed for reproducible results
 overall_seed = 43
 ```
@@ -54,7 +52,7 @@ overall_seed = 43
 # Run t-SNE on scaled markers
 set.seed(overall_seed)
 mytSNE = Rtsne(
-  data[,c(1:500)],              # input scaled data
+  transcript.data,              # input scaled data (in this case, choosing the first 500 most variable transcripts for each cell)
   dims = 2,        
   initial_dims = ncol(data),    # number of initial dimensions
   perplexity = 30,          # perplexity (similar to # of nearest neighbors, 
@@ -121,7 +119,7 @@ labs(caption = "IDH-A Glioma Data from Venteicher et al., Science 2017, 355(6332
 ```{r MEM on t-SNE/FlowSOM Clusters}
 # Run MEM on the FlowSOM clusters found from using t-SNE axes
 cluster = as.numeric(as.vector((FlowSOM.clusters.t)))
-MEM.data = cbind(data[,c(1:500)], cluster)
+MEM.data = cbind(transcript.data, cluster)
 
 MEM.values.tf = MEM(
   MEM.data,              # input data (last column must contain cluster values)
@@ -154,7 +152,7 @@ build.heatmaps(
 # Run UMAP on all surface markers
 set.seed(overall_seed)
 myumap <-
-  umap(data[,c(1:500)],  # input scaled data
+  umap(transcript.data,  # input scaled data
        ret_model = TRUE,
        n_threads = 1, 
        a = 1,
@@ -218,7 +216,7 @@ labs(caption = "IDH-A Glioma Data from Venteicher et al., Science 2017, 355(6332
 ```{r MEM on UMAP/FlowSOM Clusters}
 # Run MEM on the FlowSOM clusters found from using UMAP axes
 cluster = as.numeric(as.vector((FlowSOM.clusters.u)))
-MEM.data = cbind(data[,c(1:500)], cluster)
+MEM.data = cbind(transcript.data, cluster)
 
 MEM.values.uf = MEM(
   MEM.data,              # input data (last column must contain cluster values)
