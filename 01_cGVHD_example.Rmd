@@ -61,7 +61,8 @@ mytSNE = Rtsne(
                             # will scale with data sets, cannot be greater than
                             # the number of events minus 1 divided by 3)
   check_duplicates = FALSE, 
-  max_iter = 10000          # number of iterations
+  max_iter = 10000,        # number of iterations
+  verbose = TRUE
 )
 tSNE.data = as.data.frame(mytSNE$Y)
 
