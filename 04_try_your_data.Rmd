@@ -87,6 +87,12 @@ cofactor = 5
 my.markers.transformed <- my.marker.data %>%
   mutate_all(function(x)
     asinh(x / cofactor))
+
+# uncomment lines below if you have different cofactors for each channel 
+#colnames(my.marker.data)      ### this line will show you chosen channels to run analysis on
+#cofactor = c(5,10,5,5)        ### enter cofactors here for each of the channels (separated by a comma)
+#print(as.data.frame(cbind(colnames(my.marker.data),cofactor)))   ### this line will show you each channel and the respective cofactor for scaling
+#my.markers.transformed = as.data.frame(t(apply(my.marker.data, 1, function(x) asinh(x/cofactor))))    ### apply scales to data
 ```
 ```{r run_UMAP}
 # Run UMAP on chosen markers
