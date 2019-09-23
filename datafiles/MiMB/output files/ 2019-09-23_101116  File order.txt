@@ -1,8 +1,0 @@
-"1" "GM CSF + G CSF_cells_found_normalized_viable_viSNE_GCSF_GMCSF_Pop8.fcs"
-"2" "GM CSF + G CSF_cells_found_normalized_viable_viSNE_GCSF_GMSCF_Pop7.fcs"
-"3" "IFNg_cells_found_normalized_viable_viSNE_IFNg_pop3.fcs"
-"4" "IL-10_cells_found_normalized_viable_viSNE_IL10_Pop6.fcs"
-"5" "IL-4_cells_found_normalized_viable_viSNE_IL4_Pop4.fcs"
-"6" "IL-4_cells_found_normalized_viable_viSNE_IL4_Pop5.fcs"
-"7" "LPS_cells_found_normalized_viable_viSNE_LPS_Pop1.fcs"
-"8" "LPS_cells_found_normalized_viable_viSNE_LPS_Pop2.fcs"
