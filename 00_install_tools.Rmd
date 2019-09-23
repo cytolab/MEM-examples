@@ -7,7 +7,7 @@ output: html_document
 # Print the contents of a help text file with notes for new users
 writeLines(readLines(paste(getwd(), "intro.txt", sep="/")))
 ```
-```{r Notes_for_newbies, echo=FALSE, results = "markup"}
+```{r Read_license, echo=FALSE, results = "markup"}
 # Print the End User License Agreement for MEM
 writeLines(readLines(paste(getwd(), "EULA-MEM.txt", sep="/")))
 ```
@@ -33,7 +33,7 @@ path to the latest versio of R under R session. You may then be prompted to quit
 and re-open RStudio. If you do not see the new version listed in the directory, 
 you will need to try installing the latest version of R again.")
 ```
-```{r installing_notes, echo=FALSE, results = "markdown"}
+```{r installation_notes, echo=FALSE, results = "markdown"}
 # Print the contents a help file that explains installing packages
 writeLines(readLines(paste(getwd(), "installing.txt", sep="/")))
 ```
