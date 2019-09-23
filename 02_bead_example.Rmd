@@ -15,7 +15,7 @@ This dataset contains 38 mass cytometry compensation beads (11,400 cells total),
 each of which is supposed to be positive for only 1 marker and negative for 37. 
 
 Each section of code should run in about 30 seconds or less. Running the entire 
-script from start to finish (by choosing to Run All Chunks) should take a minute 
+script from start to finish (by choosing to Run All Chunks) should take a minute
 or two. 
 
 ```{r setup, include=FALSE}

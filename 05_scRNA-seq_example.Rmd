@@ -13,7 +13,7 @@ editor_options:
 
 This data set contains 1 FCS (flow cytometry standard) file which contains IDH-A brain tumor cells from 10 patients. This dataset contains the 500 most variable transcripts from the scRNA-seq results. 
 
-Each section of code should run in about a minute or less. Running the entire script from start to finish (by choosing to Run All Chunks) should take a two to five minutes. 
+Each section of code should run in about a minute or less. Running the entire script from start to finish (by choosing to Run All Chunks) should take about two to five minutes. 
 
 ```{r setup, include=FALSE}
 # Load all libraries
