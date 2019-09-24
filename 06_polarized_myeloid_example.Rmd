@@ -168,7 +168,7 @@ MEM.values.uf = MEM(
   zero.ref = FALSE,
   rename.markers = FALSE,
   new.marker.names = "CD11b,CD19,Tim3,Slan,MerTK,CD64,CD36,CD164,CCR2,CD43,CD123,CD13,CD454RA,CD163,CD27,CD86,CD33,CD11c,CD14,CD32,S100A9,HLA-DR,CD206,CD16,CD120a,CCR7,CD8,CD25,CD3,CD68,CD9,CD45,PD-1,CD274,CD127",
-  file.is.clust = TRUE, # each file is a "cluster" or cell subset
+  file.is.clust = FALSE, # each file is a "cluster" or cell subset
   add.fileID = FALSE,
   IQR.thresh = NULL
 )
