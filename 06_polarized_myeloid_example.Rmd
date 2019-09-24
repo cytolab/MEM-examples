@@ -39,11 +39,11 @@ setwd(paste(getwd(), "/datafiles/MiMB", sep = ""))
 files <-  dir(pattern = "*.fcs")
 print(files)
 
-# Run MEM on the manually gated populations (each FCS files is a pop) from paper
+# Run MEM on the polarized myeloid populations (each FCS files is a pop) from paper
 MEM.values.orig = MEM(
   files,                # input data (last column must contain cluster values)
   transform = TRUE,     # apply arcsinh transformation to the data
-  cofactor = 5,        # set cofactor
+  cofactor = 5,         # set cofactor
   choose.markers = FALSE,
   markers = "12:27,29:47",  # choose columns run MEM on
   choose.ref = FALSE,
@@ -56,15 +56,15 @@ MEM.values.orig = MEM(
 )
 
 # build MEM heatmap and output enrichment scores
-# build.heatmaps(
-#   MEM.values.orig,      # input MEM values 
-#   cluster.MEM = "both",
-#   display.thresh = 2,   # display threshold for MEM scores
-#   newWindow.heatmaps = FALSE,
-#   output.files = FALSE,
-#   labels = TRUE,
-#   only.MEMheatmap = FALSE
-# )
+build.heatmaps(
+   MEM.values.orig,      # input MEM values 
+   cluster.MEM = "both",
+   display.thresh = 2,   # display threshold for MEM scores
+   newWindow.heatmaps = FALSE,
+   output.files = FALSE,
+   labels = TRUE,
+   only.MEMheatmap = FALSE
+ )
 
 # prepare data for use in UMAP
 data <- lapply(lapply(files, read.FCS), exprs)
@@ -160,8 +160,8 @@ MEM.data = cbind(transformed.chosen.markers, cluster)
 
 MEM.values.uf = MEM(
   MEM.data,                # input data (last column must contain cluster values)
-  transform = TRUE,     # apply arcsinh transformation to the data
-  cofactor = 5,        # set cofactor
+  transform = FALSE,        # apply arcsinh transformation to the data
+  cofactor = 0,            # set cofactor
   choose.markers = FALSE,
   markers = "all",  # choose columns run MEM on
   choose.ref = FALSE,
@@ -198,7 +198,7 @@ all.MEM.values = as.matrix(rbind(uf.MEM.scores, orig.MEM.scores))
 RMSD_vals <-
   MEM_RMSD(
     all.MEM.values,                # input all MEM values from clustering and 
-                                   # expert gating
+                                   # published populations
     format = NULL,
     newWindow.heatmaps = FALSE,
     output.matrix = FALSE
