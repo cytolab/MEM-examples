@@ -13,7 +13,7 @@ editor_options:
 
 This data set contains 8 FCS (flow cytometry standard) files. Each FCS file contains a polarized myeloid cell population from a mass cytometry experiment in which tissues were single-cell dissociated and cultured in various cytokine stimulation conditions. The populations were computationally isolated using minimum spanning tree algorithms (SPADE). The first section of the code will return MEM labels for these populations. The goal of this exercise is to generate cell subsets through FlowSOM clustering following UMAP analysis, calculate MEM labels from this analysis, and then compare the MEM labels to the original, expert gated populations using the root mean square deviation (RMSD) in the MEM labels.
 
-Each section of code should run in about a minute or less. Running the entire script from start to finish (by choosing to Run All Chunks) should take about two to five minutes. 
+Each section of code should run in about 3 minutes or less. Running the entire script from start to finish (by choosing to Run All Chunks) should take about five minutes. 
 
 ```{r setup, include=FALSE}
 # Load all libraries
