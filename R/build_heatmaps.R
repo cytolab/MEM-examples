@@ -132,12 +132,17 @@ build.heatmaps <-
         }
 
         # Print MEM heatmap according to cluster spec
-
+        if (length(which(apply(heatmap_data, 1, function(row) any(row < 0)))) == 0){
+          title_MEM = "   MEM Heatmap*"
+        }else{
+          title_MEM = "   MEM Heatmap"}
+        
+        
         if (labels == TRUE) {
             table <-
                 heatmap.2(
                     heatmap_data,
-                    main = "   MEM Heatmap",
+                    main = title_MEM,
                     dendrogram = dendro_var_MEM,
                     Rowv = Rowv_var_MEM,
                     Colv = Colv_var_MEM,
@@ -162,7 +167,7 @@ build.heatmaps <-
             table <-
                 heatmap.2(
                     heatmap_data,
-                    main = "MEM Heatmap",
+                    main = title_MEM,
                     dendrogram = dendro_var_MEM,
                     Rowv = Rowv_var_MEM,
                     Colv = Colv_var_MEM,
@@ -311,7 +316,7 @@ build.heatmaps <-
             width = 20)
             heatmap.2(
                 heatmap_data,
-                main = "MEM heatmap",
+                main = title_MEM,
                 dendrogram = dendro_var_MEM,
                 Rowv = Rowv_var_MEM,
                 Colv = Colv_var_MEM,
