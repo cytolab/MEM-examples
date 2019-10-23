@@ -313,7 +313,7 @@ build.heatmaps <-
                 strftime(Sys.time(), "%Y-%m-%d_%H%M%S"),
                 " MEM heatmap.pdf"
             ),
-            width = 20)
+            width = 10)
             heatmap.2(
                 heatmap_data,
                 main = title_MEM,
