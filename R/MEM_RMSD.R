@@ -120,12 +120,28 @@ MEM_RMSD <-
                 paste(
                     "./output files/",
                     strftime(Sys.time(), "%Y-%m-%d_%H%M%S"),
-                    " MEM_RMSD1.txt",
+                    " MEM_RMSD.txt",
                     sep = ""
                 ),
                 sep = "\t",
                 row.names = TRUE
             )
+            
+            pdf(paste(
+                "./output files/",
+                strftime(Sys.time(), "%Y-%m-%d_%H%M%S"),
+                " RMSD heatmap.pdf"
+            ))
+                heatmap.2(
+                    as.matrix(similarity),
+                    main = "MEM RMSD",
+                    dendrogram = "both",
+                    trace = "none",
+                    key = TRUE,
+                    col = heat_palette,
+                    breaks = pairs.breaks)
+            dev.off()
+            
         }
 
         return(similarity)
