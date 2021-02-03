@@ -155,7 +155,7 @@ MEM <- function(exp_data, transform=FALSE, cofactor=1, choose.markers=FALSE,mark
     MEM_matrix = abs(MAGpop-MAGref)+IQRcomp
 
     # If MAGpop < MAGref or MAGpop = MAGref, negate MEM score (i.e. if MAGdiff = 0)
-    MEM_matrix[!(MAG_diff>0)] <- (-MEM_matrix[!(MAG_diff>0)])
+    MEM_matrix[!(MAG_diff>=0)] <- (-MEM_matrix[!(MAG_diff>=0)])
 
     if(zero.ref == TRUE){
         MEM_matrix[MEM_matrix<0] <- 0}
