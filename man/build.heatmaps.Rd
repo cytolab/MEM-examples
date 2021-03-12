@@ -68,4 +68,4 @@ Kirsten Diggins, Sierra Barone, Jonathan Irish
 
 build.heatmaps(MEM_values, cluster.MEM = "both", cluster.medians = "none", 
     cluster.IQRs = "none", newWindow.heatmaps=FALSE, display.thresh = 1, 
-    output.files = TRUE, labels = FALSE, only.MEMheatmap = FALSE)}
+    output.files = TRUE, labels = FALSE, only.MEMheatmap = FALSE,output.dir = "./output files/"))}

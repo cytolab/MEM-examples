@@ -52,6 +52,13 @@ Default \code{NULL}. Optionally can be set to a numeric value. See \code{Details
   \item{output.prescaled.MEM}{
 Default \code{FALSE}. If TRUE, creates folder in working directory called "output files" containing a TXT file with pre-scaled MEM values. The MEM matrix output by \code{\link{build.heatmaps}} contains post-scaled (-10 to +10 scale) MEM values.
 }
+  \item{scale.matrix}{
+Default \code{"linear"}. Choose how to scale the MEM matrix. Can choose from "linear" "log" or "arcsinh" for the MEM matrix scale, apply scale, and then transform from -10 to 10 or 0 to 10.
+}
+  \item{scale.factor}{
+Default \code{0}. Choose the factor for the MEM matrix scaling. For example, choosing 2 will apply a log2 scale if "log" is chosen for scale.matrix, if "arcsinh"" is chosen then choosing 2 for scale.factor will use arcsinh scale with a cofactor of 2.
+}
+
 }
 \details{
 For each population and its reference, MEM first calculates \code{\link{median}} marker levels and marker interquartile ranges (\code{\link{IQR}}), and then calculates MEM scores according to the equation
@@ -96,5 +103,5 @@ The object generated from \code{\link{MEM}} is meant to be passed to \code{\link
 ## User inputs
 MEM_values = MEM(PBMC, transform=TRUE, cofactor=15, choose.markers=FALSE, 
 markers="all", choose.ref=FALSE, zero.ref = FALSE, rename.markers=FALSE, 
-new.marker.names="none", IQR.thresh=NULL)}
+new.marker.names="none", IQR.thresh=NULL, output.prescaled.MEM=FALSE,scale.matrix = "linear",scale.factor = 0)}
 
