@@ -28,7 +28,7 @@ get.files <- function(exp_data) {
                 paste(
                     "./output files/",
                     strftime(Sys.time(), "%Y-%m-%d_%H%M%S"),
-                    " File order.txt"
+                    " File order.txt",sep = ""
                 ),
                 col.names = FALSE)
 
