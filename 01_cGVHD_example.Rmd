@@ -107,7 +107,7 @@ fSOM.t <-
     seed = overall_seed
   )
 tSNE.FlowSOM.clusters <-
-  as.matrix(fSOM.t[[2]][fSOM.t[[1]]$map$mapping[, 1]])
+  GetMetaclusters(fSOM.t)
 
 # plot t-SNE with FlowSOM clusters
 ggplot(tSNE.plot) + coord_fixed(ratio = graphical.ratio.t) + 
@@ -203,7 +203,7 @@ fSOM.u <-
     seed = overall_seed
   )
 UMAP.FlowSOM.clusters <-
-  as.matrix(fSOM.u[[2]][fSOM.u[[1]]$map$mapping[, 1]])
+  GetMetaclusters(fSOM.u)
 
 # plot FlowSOM clusters on UMAP axes
 ggplot(UMAP.plot) + coord_fixed(ratio = graphical.ratio.u) + 
