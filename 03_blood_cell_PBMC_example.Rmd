@@ -147,7 +147,7 @@ fsom <-
     seed = overall_seed  # set seed
   )
 FlowSOM.clusters <-
-  as.matrix(fsom[[2]][fsom[[1]]$map$mapping[, 1]])
+  GetMetaclusters(fsom)
 
 # plot FlowSOM clusters on UMAP axes
 ggplot(UMAP.plot) + coord_fixed(ratio=graphical.ratio) + 

@@ -148,7 +148,7 @@ fsom <-
     seed = 1
   )
 FlowSOM.clusters <-
-  as.matrix(fsom[[2]][fsom[[1]]$map$mapping[, 1]])
+  GetMetaclusters(fsom)
 
 qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
 col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, 
