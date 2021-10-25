@@ -1,0 +1,431 @@
+---
+title: "Data Analysis Workflow Example on AML"
+author: "Copyright (c) 2016-2019 by Kirsten Diggins, Sierra Barone, and Jonathan Irish, All Rights Reserved; see EULA-MEM.text for MEM license information"
+date: "October 2019"
+output:
+  html_document:
+    df_print: paged
+  pdf_document:
+    latex_engine: xelatex
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+# Data from Diggins et al., Methods. 2015
+# Time <10 sec
+
+# Load all libraries
+# If you get an error message, you will need to try re-installing packages by 
+# going back to the 00_install_tools.RMD script
+library(FlowSOM)
+library(flowCore)
+library(Biobase)
+library(ggplot2)
+library(hexbin)
+library(ggExtra)
+library(RColorBrewer)
+library(MEM)
+library(tidyverse)
+library(Rtsne)
+library(cowplot)
+
+cat("\n\n...'setup' finished running")
+```
+
+```{r data_preparation, warning=FALSE}
+# Time <10 sec
+
+###### CONSTANTS TO SET ########
+
+# cofactor for arcsinh transformation
+COFACTOR = 15 
+
+# set seed for reproducible results
+OVERALL_SEED = 43
+
+# set FlowSOM target number of clusters 
+CLUSTER_NUM = 20 
+
+################################
+
+# read files into R by setting working directory and directing R to the fcs files
+setwd(paste(getwd(), "/datafiles/aml/", sep = ""))
+files <-  dir(pattern = "*.fcs")
+
+# convert and combine data for use in downstream analysis
+data <- lapply(lapply(files, read.FCS), exprs)
+combined.data = as.data.frame(do.call(rbind, mapply(
+  cbind, data, "File_ID" = c(1:length(data)), SIMPLIFY = F)))
+orig.names <- colnames(combined.data)
+colnames(combined.data)[1:(length(combined.data) - 2)] <- as.character(read.FCS(files[[1]])@parameters@data[["desc"]])
+
+# choose channels with markers to use for downstream analysis and apply arcsinh transformation with a cofactor of 15
+transformed.chosen.markers <- combined.data %>%
+  select(contains("-"),-contains("Ir")) %>%
+  mutate_all(function(x)
+    asinh(x / COFACTOR))  
+
+tsne.data = as.data.frame(cbind(combined.data$tSNE1,combined.data$tSNE2))
+colnames(tsne.data) <- c("tSNE1","tSNE2")
+
+cat("\n\n...'data_preparation' finished running")
+```
+
+```{r plot_t-SNE}
+# Time <10 sec
+
+# setting aspect ratio for plots
+range <- apply(apply(tsne.data, 2, range), 2, diff)
+graphical.ratio.tsne <- (range[1] / range[2])
+
+# t-SNE flat dot plot and density dot plot (1 dot = 1 cell)
+tsne.plot <- data.frame(x = tsne.data[, 1], y = tsne.data[, 2])
+
+# dot plot
+ggplot(tsne.plot) + coord_fixed(ratio = graphical.ratio.tsne) + 
+  geom_point(aes(x = x, y = y), cex = 0.3) + labs(x = "t-SNE 1", y = "t-SNE 2", 
+  title = "AML Data on t-SNE Axes") + 
+  theme_bw() + 
+  labs(caption = "Data from Digggins et al., Methods 2015.") + 
+  theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank())
+
+# density dot plot
+ggplot(tsne.plot, aes(x = x, y = y)) + 
+  coord_fixed(ratio = graphical.ratio.tsne)+ geom_point(size = 0.4) +geom_density_2d_filled(bins = 39) +scale_fill_manual(values = c("NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA","NA",viridis::viridis(28,option = "A"))) +
+labs(x = "t-SNE 1", y = "t-SNE 2", 
+  title = "Density on t-SNE Axes") + theme_bw() + 
+  labs(caption = "Data from Diggins et al., Methods 2015.") + 
+  theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank())+theme(legend.position = "none") 
+
+cat("\n\n...'plot_t-SNE' finished running")
+```
+
+```{r plot heat on markers t-SNE}
+setwd(paste(getwd(), "/datafiles/aml", sep = ""))
+dir.create("./output files/")
+
+tsne.by.marker<-as_tibble(tsne.data) %>%
+  bind_cols(transformed.chosen.markers)  %>%
+  gather(channel, intensity, -tSNE1, -tSNE2) %>%
+  mutate(across(channel,factor))%>%
+  group_split(channel) %>%
+  map(
+    ~ggplot(.,aes(x= tSNE1, y= tSNE2, col = intensity)) +
+  geom_point(size = 3) +
+  scale_color_gradientn(
+    colours = colorRampPalette(rev(brewer.pal(n = 11, name = "Spectral")))(5))+
+  facet_grid(~ channel, labeller = function(x) label_value(x, multi_line = FALSE)) +
+  coord_fixed() +
+  theme_bw()+
+  theme(strip.text.x = element_text(size = 20),legend.title=element_blank()))%>%
+  plot_grid(plotlist = ., align = 'hv', ncol = 8)
+
+png(paste("./output files/",strftime(Sys.time(),"%Y-%m-%d_%H%M%S"),"t-SNE on transformed data.png"),height = 2000,width = 4000)
+print(tsne.by.marker)
+dev.off()
+```
+
+```{r run_FlowSOM_on_t-SNE}
+# Time <10 sec
+
+# create flowFrame for FlowSOM input (using t-SNE axes as input)
+matrix <- as.matrix(tsne.data)
+metadata <-
+  data.frame(name = dimnames(matrix)[[2]],
+             desc = dimnames(matrix)[[2]])
+metadata$range <- apply(apply(matrix, 2, range), 2, diff)
+metadata$minRange <- apply(matrix, 2, min)
+metadata$maxRange <- apply(matrix, 2, max)
+flowframe <- new("flowFrame",
+                      exprs = matrix,
+                      parameters = AnnotatedDataFrame(metadata))
+
+# implement the FlowSOM on the data by running the line below (to see help page 
+# for FlowSOM, type "?FlowSOM --> enter" in console)
+fsom <-
+  FlowSOM(
+    flowframe,      # input flowframe 
+    
+    colsToUse = c(1:2),  # columns to use 
+    
+    nClus = CLUSTER_NUM,          # target number of clusters (this can be changed)
+    
+    seed = OVERALL_SEED  # set seed for reproducibility
+  )
+FlowSOM.clusters.tsne <-
+  GetMetaclusters(fsom)
+
+cat("\n\n...'run_FlowSOM_on_t-SNE' finished running")
+```
+
+```{r plot_t-SNE_flowSOM_clusters}
+# Time <10 sec
+qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
+col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, 
+                           rownames(qual_col_pals)))
+
+
+
+# plot FlowSOM clusters on UMAP axes for each file used in analysis
+analysis.data = cbind(tsne.data,FlowSOM.clusters.tsne,combined.data$`File_ID`)
+separate.fcs.files = split(analysis.data,analysis.data$`combined.data$File_ID`)
+newname <- c("AML Blasts", "AML Nonblast", "Normal Marrow Nonblast")
+for (i in 1:length(separate.fcs.files)){
+plot <- data.frame(x = separate.fcs.files[[i]][["tSNE1"]], 
+                   y = separate.fcs.files[[i]][["tSNE2"]], 
+                   col = as.factor(separate.fcs.files[[i]][["FlowSOM.clusters.tsne"]]))
+legend.col = round(max(as.numeric(as.vector(FlowSOM.clusters.tsne)))/3)
+print(ggplot(plot) + geom_point(aes(x=x, y=y, col = col), cex = 0.3) +
+  coord_fixed(ratio=graphical.ratio.tsne)+ 
+  labs(color = "FlowSOM Cluster", x = "t-SNE1", y = "t-SNE2", 
+       title = paste0("FlowSOM clustering for: ", newname[i])) + 
+  scale_color_manual(values = sample(col_vector)) + 
+  guides(colour = guide_legend(override.aes = list(size=5),nrow = legend.col))+
+  theme_bw() + theme(plot.caption = element_text(size = 6))+ 
+  theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank())+xlim(-25,25)+ylim(-25,25))}
+
+ggplot(tsne.plot) + coord_fixed(ratio=graphical.ratio.tsne) + 
+  geom_point(aes(x=x, y=y, color=FlowSOM.clusters.tsne), cex = 0.2) + 
+  labs(x = "t-SNE 1", y = "t-SNE 2",
+       title = "FlowSOM Clustering on All Files ", color = "Cluster") +
+  theme_bw() + scale_color_manual(values = sample(col_vector)) +
+  guides(colour = guide_legend(override.aes = list(size=4),nrow = legend.col)) +
+  labs(caption = "Data from Diggins et al., Methods 2015.") + 
+  theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank())
+
+cat("\n\n...'plot_t-SNE_FlowSOM_clusters' finished running")
+```
+
+```{r t-SNE_FlowSOM_varying_cluster_number}
+# Time ~ 1-2 min
+
+# run FlowSOM on the t-SNE axes while varying cluster number 
+for (i in seq(5,35,by = 10)){
+
+fsom <-
+  FlowSOM(
+    flowframe, 
+    colsToUse = c(1:2),
+    nClus = i,    
+    seed = OVERALL_SEED 
+  )
+FlowSOM.clusters.vary <-
+  GetMetaclusters(fsom)
+
+# plot FlowSOM clusters on t-SNE axes
+legend.col = round(max(as.numeric(as.vector(FlowSOM.clusters.vary)))/3)
+print(ggplot(tsne.plot) + coord_fixed(ratio=graphical.ratio.tsne) + 
+  geom_point(aes(x=x, y=y, color=FlowSOM.clusters.vary), cex = 0.3) + 
+  labs(x = "t-SNE 1", y = "t-SNE 2",title = "FlowSOM Clustering on t-SNE Axes", 
+       color = "Cluster") + theme_bw() + 
+  guides(colour = guide_legend(override.aes = list(size=4), 
+                               nrow = legend.col)) + 
+    scale_color_manual(values = sample(col_vector)) +
+  labs(caption = "Data from Diggins et al., Methods 2015.") + 
+  theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank()))}
+
+cat("\n\n...'t-SNE_FlowSOM_varying_cluster_number' finished running")
+```
+
+```{r FlowSOM_on_original_markers}
+# Time ~ 1 min
+
+# create flowFrame for FlowSOM input (using original features as input)
+matrix <- as.matrix(transformed.chosen.markers)
+metadata <-
+  data.frame(name = dimnames(matrix)[[2]],
+             desc = dimnames(matrix)[[2]])
+metadata$range <- apply(apply(matrix, 2, range), 2, diff)
+metadata$minRange <- apply(matrix, 2, min)
+metadata$maxRange <- apply(matrix, 2, max)
+flowframe.og <- new("flowFrame",
+                      exprs = matrix,
+                      parameters = AnnotatedDataFrame(metadata))
+
+# implement the FlowSOM on the data by running the line below 
+fsom <-
+  FlowSOM(
+    flowframe.og,
+    colsToUse = c(1:ncol(transformed.chosen.markers)),
+    nClus = CLUSTER_NUM,   
+    seed = OVERALL_SEED
+  )
+FlowSOM.clusters.OG <-
+  GetMetaclusters(fsom)
+
+
+# plot FlowSOM clusters on UMAP axes for each file used in analysis
+analysis.data = cbind(tsne.data,FlowSOM.clusters.OG,combined.data$`File_ID`)
+separate.fcs.files = split(analysis.data,analysis.data$`combined.data$File_ID`)
+newname <- c("AML Blasts", "AML Nonblast", "Normal Marrow Nonblast")
+for (i in 1:length(separate.fcs.files)){
+plot <- data.frame(x = separate.fcs.files[[i]][["tSNE1"]], 
+                   y = separate.fcs.files[[i]][["tSNE2"]], 
+                   col = as.factor(separate.fcs.files[[i]][["FlowSOM.clusters.OG"]]))
+legend.col = round(max(as.numeric(as.vector(FlowSOM.clusters.tsne)))/3)
+print(ggplot(plot) + geom_point(aes(x=x, y=y, col = col), cex = 0.3) +
+  coord_fixed(ratio=graphical.ratio.tsne)+ 
+  labs(color = "FlowSOM Cluster", x = "t-SNE1", y = "t-SNE2", 
+       title = paste0("FlowSOM clustering for: ", newname[i])) + 
+  scale_color_manual(values = sample(col_vector)) + 
+  guides(colour = guide_legend(override.aes = list(size=5),nrow = legend.col))+
+  theme_bw() + theme(plot.caption = element_text(size = 6))+ 
+  theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank())+xlim(-25,25)+ylim(-25,25))}
+
+# plot FlowSOM clusters on t-SNE axes
+legend.col = round(max(as.numeric(as.vector(FlowSOM.clusters.OG)))/3)
+ggplot(tsne.plot) + coord_fixed(ratio=graphical.ratio.tsne) + 
+  geom_point(aes(x=x, y=y, color=FlowSOM.clusters.OG), cex = 0.2) + 
+  labs(x = "t-SNE 1", y = "t-SNE 2",
+       title = "FlowSOM Clustering on Original Markers", color = "Cluster") +
+  theme_bw() + scale_color_manual(values = sample(col_vector)) +
+  guides(colour = guide_legend(override.aes = list(size=4),nrow = legend.col)) +
+  labs(caption = "Data from Diggins et al., Methods 2015.") + 
+  theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank())
+
+cat("\n\n...'FlowSOM_on_original_markers' finished running")
+```
+
+```{r original_markers_FlowSOM_varying_cluster_number}
+# Time ~ 1-2 min
+
+# run FlowSOM on original markers while varying cluster number 
+for (i in seq(5,45,by = 10)){
+
+fsom <-
+  FlowSOM(
+    flowframe.og, 
+    colsToUse = c(1:ncol(transformed.chosen.markers)),
+    nClus = i,    
+    seed = OVERALL_SEED 
+  )
+FlowSOM.clusters.vary <-
+  GetMetaclusters(fsom)
+
+# plot FlowSOM clusters on t-SNE axes
+legend.col = round(max(as.numeric(as.vector(FlowSOM.clusters.vary)))/3)
+print(ggplot(tsne.plot) + coord_fixed(ratio=graphical.ratio.tsne) + 
+  geom_point(aes(x=x, y=y, color=FlowSOM.clusters.vary), cex = 0.2) + 
+  labs(x = "t-SNE 1", y = "t-SNE 2",title = "FlowSOM Clustering on Original Markers", 
+       color = "Cluster") + theme_bw() + 
+  guides(colour = guide_legend(override.aes = list(size=4), 
+                               nrow = legend.col)) + 
+    scale_color_manual(values = sample(col_vector)) +
+  labs(caption = "Data from Diggins et al., Nat Methods 2015.") + 
+  theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank()))}
+
+cat("\n\n...'original_markers_FlowSOM_varying_cluster_number' finished running")
+```
+
+```{r run_MEM_on_FlowSOM_on_t-SNE}
+setwd(paste(getwd(), "/datafiles/aml/", sep = ""))
+
+# Time ~30 sec
+
+# Run MEM on the FlowSOM clusters found from using t-SNE axes
+cluster = as.numeric(as.vector((FlowSOM.clusters.tsne)))
+MEM.data = cbind(transformed.chosen.markers, cluster)
+
+MEM.values.tf = MEM(
+  MEM.data,              # input data (last column must contain cluster values)
+  
+  transform = FALSE,     # data is already scaled in this case
+  cofactor = 1,
+  choose.markers = FALSE,
+  markers = "all",       # use all transformed, chosen markers from previous 
+                         # selection
+  
+  choose.ref = FALSE,    # reference will be all other cells
+  zero.ref = FALSE,
+  rename.markers = FALSE,
+  new.marker.names = "CD235a,CD19,CD117,CD11b,CD4,CD64,CD7,CD34,CD61,CD123,CD13,CD62L,CD45,CD183,CD33,CD11c,CD14,CD15,CD16,CD24,CD38,CD25,CD3,CD185,HLA-DR,CD184,CD56", 
+  # rename channels for labels
+  file.is.clust = FALSE,
+  add.fileID = FALSE,
+  IQR.thresh = NULL
+)
+
+# build MEM heatmap and output enrichment scores
+build.heatmaps(
+  MEM.values.tf,                # input MEM values
+  
+  cluster.MEM = "both",         # dendrogram for columns and rows
+  
+  display.thresh = 2,           # display threshold for MEM scores
+  newWindow.heatmaps = FALSE,
+  output.files = TRUE,          # makes txt and PDF files for heatmap and MEM 
+                                # scores
+  
+  labels = TRUE,                # include labels in heatmap
+  only.MEMheatmap = FALSE
+)
+
+cat("\n\n...run_MEM_on_FlowSOM_on_t-SNE' finished running")
+```
+
+```{r run_MEM_on_FlowSOM_on_original}
+# Time ~30 sec
+
+cluster = as.numeric(as.vector((FlowSOM.clusters.OG)))
+MEM.data = cbind(transformed.chosen.markers, cluster)
+
+MEM.values.ogf = MEM(
+  MEM.data,       
+  transform = FALSE,
+  cofactor = 1,
+  choose.markers = FALSE,
+  markers = "all",  
+  choose.ref = FALSE,   
+  zero.ref = FALSE,
+  rename.markers = FALSE,
+  new.marker.names = "CD235a,CD19,CD117,CD11b,CD4,CD64,CD7,CD34,CD61,CD123,CD13,CD62L,CD45,CD183,CD33,CD11c,CD14,CD15,CD16,CD24,CD38,CD25,CD3,CD185,HLA-DR,CD184,CD56", # rename channels for labels
+  file.is.clust = FALSE,
+  add.fileID = FALSE,
+  IQR.thresh = NULL
+)
+
+build.heatmaps(
+  MEM.values.ogf,
+  cluster.MEM = "both",
+  display.thresh = 2,
+  newWindow.heatmaps = FALSE,
+  output.files = TRUE,
+  labels = TRUE,
+  only.MEMheatmap = FALSE
+)
+cat("\n\n...run_MEM_on_FlowSOM_on_original' finished running")
+```
+
+```{r run_RMSD_all_clusters}
+# RMSD to compare labels from all populations 
+
+ogf.MEM.scores = as.data.frame(MEM.values.ogf[[5]])
+rownames(ogf.MEM.scores) = paste0(rownames(ogf.MEM.scores), " (OG/fSOM)")
+
+tf.MEM.scores = as.data.frame(MEM.values.tf[[5]])
+rownames(tf.MEM.scores) = paste0(rownames(tf.MEM.scores), ' (t-SNE/fSOM)')
+
+all.MEM.values = as.matrix(rbind(ogf.MEM.scores, tf.MEM.scores))
+
+RMSD_vals <-
+  MEM_RMSD(
+    all.MEM.values,                # input all MEM values from clustering and 
+                                   # expert gating
+    format = NULL,
+    newWindow.heatmaps = FALSE,
+    output.matrix = TRUE
+  )
+
+cat("\n\n...run_RMSD_on_clusters' finished running")
+```
+
+

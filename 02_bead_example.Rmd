@@ -34,6 +34,7 @@ library(uwot)
 library(viridis)
 library(ggExtra)
 library(RColorBrewer)
+library(cowplot)
 ```
 
 ```{r MEM on beads, warning=FALSE}
@@ -99,12 +100,39 @@ ggplot(UMAP.plot) + coord_fixed(ratio=graphical.ratio) +
   geom_point(aes(x=x, y=y), cex = 1) + labs( x = "UMAP 1", y = "UMAP 2", 
         title = "Mass Cytometry Beads") + theme_bw()
 
-ggplot(UMAP.plot, aes(x=x, y=y)) + coord_fixed(ratio = graphical.ratio)  + 
-  geom_bin2d(bins = 128) + scale_fill_viridis_c(option = "A", trans = "sqrt") + 
-  scale_x_continuous(expand = c(0.1,0)) + scale_y_continuous(expand = c(0.1,0)) +
-  labs(x = "UMAP 1", y = "UMAP 2", title = "Mass Cytometry Beads") + theme_bw()
+# density dot plot
+ggplot(UMAP.plot, aes(x = x, y = y)) + 
+  coord_fixed(ratio = graphical.ratio)+ geom_point(size = 0.5) +geom_density_2d_filled(bins = 29) +scale_fill_manual(values = c("NA","NA","NA","NA","NA","NA","NA",viridis::viridis(24,option = "A"))) +
+labs(x = "UMAP 1", y = "UMAP 2", 
+  title = "Density on UMAP Axes - MC Beads") + theme_bw()  + 
+  theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank())+theme(legend.position = "none") +ylim(1.2*min(umap.data[,2]),1.2*max(umap.data[,2]))+xlim(1.2*min(umap.data[,1]),1.2*max(umap.data[,1]))
 ```
 
+```{r plot heat on markers UMAP}
+setwd(paste(getwd(), "/datafiles/MCBead", sep = ""))
+dir.create("./output files/")
+
+UMAP.by.marker<-as_tibble(umap.data) %>%
+  bind_cols(transformed.chosen.markers)  %>%
+  gather(channel, intensity, -V1, -V2) %>%
+  mutate(across(channel,factor))%>%
+  group_split(channel) %>%
+  map(
+    ~ggplot(.,aes(x= V1, y= V2, col = intensity)) +
+  geom_point(size = 3) +
+  scale_color_gradientn(
+    colours = colorRampPalette(rev(brewer.pal(n = 11, name = "Spectral")))(5))+
+  facet_grid(~ channel, labeller = function(x) label_value(x, multi_line = FALSE)) +
+  coord_fixed() +
+  theme_bw()+
+  theme(strip.text.x = element_text(size = 20),legend.title=element_blank()))%>%
+  plot_grid(plotlist = ., align = 'hv', ncol = 8)
+
+png(paste("./output files/",strftime(Sys.time(),"%Y-%m-%d_%H%M%S"),"UMAP on transformed data.png"),height = 2000,width = 4000)
+print(UMAP.by.marker)
+dev.off()
+```
 
 ```{r FlowSOM on UMAP}
 # Run FlowSOM on the UMAP axes
@@ -135,7 +163,6 @@ FlowSOM.clusters <-
 qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
 col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, 
                            rownames(qual_col_pals)))
-col_vector = col_vector[-c(4,17,19,27,29:45)]
 values = sample(col_vector)
 
 # plot FlowSOM clusters on UMAP axes

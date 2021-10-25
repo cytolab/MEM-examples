@@ -35,6 +35,8 @@ library(MEM)
 library(Rtsne)
 library(uwot)
 library(tidyverse)
+library(RColorBrewer)
+library(cowplot)
 
 # Load data file into R
 setwd(paste(getwd(), "/datafiles/cGVHD", sep = ""))
@@ -79,6 +81,32 @@ ggplot(tSNE.plot) + coord_fixed(ratio = graphical.ratio.t) +
   labs(caption = "Data from Gandelman et al.,
        Hematologica 2019, 104: 189-196 \nFlow Repository: FR-FCM-ZYSU")
 ```
+
+```{r plot heat on markers t-SNE}
+setwd(paste(getwd(), "/datafiles/cGVHD", sep = ""))
+dir.create("./output files/")
+
+tsne.by.marker<-as_tibble(tSNE.data) %>%
+  bind_cols(scaled.data)  %>%
+  gather(channel, intensity, -V1, -V2) %>%
+  mutate(across(channel,factor))%>%
+  group_split(channel) %>%
+  map(
+    ~ggplot(.,aes(x= V1, y= V2, col = intensity)) +
+  geom_point(size = 3) +
+  scale_color_gradientn(
+    colours = colorRampPalette(rev(brewer.pal(n = 11, name = "Spectral")))(5))+
+  facet_grid(~ channel, labeller = function(x) label_value(x, multi_line = FALSE)) +
+  coord_fixed() +
+  theme_bw()+
+  theme(strip.text.x = element_text(size = 20),legend.title=element_blank()))%>%
+  plot_grid(plotlist = ., align = 'hv', ncol = 4)
+
+png(paste("./output files/",strftime(Sys.time(),"%Y-%m-%d_%H%M%S"),"t-SNE on scaled data.png"),height = 1000,width = 2000)
+print(tsne.by.marker)
+dev.off()
+```
+
 ```{r FlowSOM on t-SNE}
 ?FlowSOM
 
@@ -109,11 +137,16 @@ fSOM.t <-
 tSNE.FlowSOM.clusters <-
   GetMetaclusters(fSOM.t)
 
+qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
+col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, 
+                           rownames(qual_col_pals)))
+
 # plot t-SNE with FlowSOM clusters
 ggplot(tSNE.plot) + coord_fixed(ratio = graphical.ratio.t) + 
   geom_point(aes(x = x, y = y, color = tSNE.FlowSOM.clusters), cex = 1.5) + 
   labs(x = "t-SNE 1", y = "t-SNE 2", title = "FlowSOM Clustering on t-SNE Axes", 
        color = "FlowSOM Cluster") + theme_bw() + 
+    scale_color_manual(values = sample(col_vector)) +
   guides(colour = guide_legend(override.aes = list(size=5))) +
   labs(caption = "Data from Gandelman et al.,Hematologica 2019, 104: 189-196\nFlow Repository: FR-FCM-ZYSU")
 ```
@@ -210,6 +243,7 @@ ggplot(UMAP.plot) + coord_fixed(ratio = graphical.ratio.u) +
   geom_point(aes(x = x, y = y, color = UMAP.FlowSOM.clusters), cex = 1.5) + 
   labs(x = "UMAP 1", y = "UMAP 2", title = "FlowSOM Clustering on UMAP Axes",
        color = "FlowSOM Cluster") + theme_bw() + 
+    scale_color_manual(values = sample(col_vector)) +
   guides(colour = guide_legend(override.aes = list(size=5))) +
   labs(caption = "Data from Gandelman et al., Hematologica 2019, 104: 189-196 \nFlow Repository: FR-FCM-ZYSU")
 ```
@@ -248,6 +282,7 @@ build.heatmaps(
 ```
 
 ```{r Fig.1 Data from Gandelman et al., Hematologica 2019}
+
 # t-SNE plot with FlowSOM Clusters from Fig.1 in Gandelman et al., 
 # Hematologica 2019
 published.data <-
@@ -263,6 +298,7 @@ ggplot(published.data) + coord_fixed(ratio = 0.6) + geom_point(aes(
   title = "Published Clusters on t-SNE Axes",
   color = "FlowSOM Cluster"
 ) + theme_bw() + guides(colour = guide_legend(override.aes = list(size=5))) +
+    scale_color_manual(values = sample(col_vector)) +
   labs(caption = "Data from Fig.1 as in Gandelman et al., Hematologica 2019, 104: 190\nFlow Repository: FR-FCM-ZYSU")
 ```
 

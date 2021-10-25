@@ -27,8 +27,6 @@ writeLines(readLines(paste(getwd(), "installing.txt", sep="/")))
 
 
 cat("\n\n...'installation_notes' finished running")
-
-#hi
 ```
 
 ```{r install_flow_packages, echo=FALSE, results = "hide"}
@@ -56,7 +54,7 @@ library(Biobase)
 cat("\n\n...'load_flow_packages' finished running")
 ```
 
-```{r install_ggplots, echo=FALSE, results = "markup"}
+```{r install_plot_packages, echo=FALSE, results = "markup"}
 # install plotting packages
 cat("If this works, you will see text about packages being downloaded.\n\n")
 install.packages("gplots", repos = "http://cran.us.r-project.org")
@@ -65,11 +63,14 @@ install.packages("hexbin", repos = "http://cran.us.r-project.org")
 install.packages("viridis", repos = "http://cran.us.r-project.org")
 install.packages("ggExtra", repos = "http://cran.us.r-project.org")
 install.packages("RColorBrewer", repos = "http://cran.us.r-project.org")
+install.packages("purrr", repos = "http://cran.us.r-project.org")
+install.packages("cowplot", repos = "http://cran.us.r-project.org")
+install.packages("ggpubr", repos = "http://cran.us.r-project.org")
 
-cat("\n\n...'install_ggplots' finished running")
+cat("\n\n...'install_plot_packages' finished running")
 ```
 
-```{r load_ggplots, echo=FALSE, results = "markup"}
+```{r load_plot_packages, echo=FALSE, results = "markup"}
 # Load and test whether gplots and ggplot2 packages are installed
 cat("If this works, you may see Attaching Package messages or no message at all; that's good.  If you get a warning, go back to the last CHUNK.\n\n")
 library(gplots)
@@ -78,8 +79,11 @@ library(hexbin)
 library(viridis)
 library(ggExtra)
 library(RColorBrewer)
+library(purrr)
+library(cowplot)
+library(ggpubr)
 
-cat("\n\n...'load_ggplots' finished running")
+cat("\n\n...'load_plot_packages' finished running")
 ```
 
 ```{r install_MEM, echo=FALSE, results = "markup"}
@@ -100,12 +104,37 @@ library(MEM)
 cat("\n\n...'load_MEM' finished running")
 ```
 
+```{r install_RAPID, echo=FALSE, results = "markup"}
+# install RAPID
+print("You may see a bunch of messages, this is OK as long as they are not errors.\n\n")
+
+install.packages("survival", repos = "http://cran.us.r-project.org")
+install.packages("survminer", repos = "http://cran.us.r-project.org")
+devtools::install_github("cytolab/RAPID")
+
+cat("\n\n...'install_RAPID' finished running")
+```
+
+```{r load_RAPID, echo=FALSE, results = "markup"}
+# load MEM and open package documentation
+library(survival)
+library(survminer)
+library(RAPID)
+
+cat("\n\n...'load_RAPID' finished running")
+```
+
 ```{r install_last_packages, echo=FALSE, results = "markup"}
 # install the last packages for UMAP, t-SNE and other tools
 print("You may see a bunch of messages, this is OK as long as they are not errors.\n\n")
 install.packages("tidyverse", repos = "http://cran.us.r-project.org")
 install.packages("Rtsne", repos = "http://cran.us.r-project.org")
 install.packages("uwot", repos = "http://cran.us.r-project.org")
+install.packages("dbscan", repos = "http://cran.us.r-project.org")
+install.packages("FNN", repos = "http://cran.us.r-project.org")
+install.packages("dplyr", repos = "http://cran.us.r-project.org")
+install.packages("plyr", repos = "http://cran.us.r-project.org")
+install.packages("FNN", repos = "http://cran.us.r-project.org")
 
 cat("\n\n...'install_last_packages' finished running")
 ```
@@ -115,6 +144,10 @@ cat("\n\n...'install_last_packages' finished running")
 library(tidyverse)
 library(Rtsne)
 library(uwot)
+library(dbscan)
+library(dplyr)
+library(plyr)
+library(FNN)
 
 cat("\n\n...'load_last_packages' finished running")
 ```

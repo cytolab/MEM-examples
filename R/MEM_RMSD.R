@@ -131,7 +131,7 @@ MEM_RMSD <-
                 "./output files/",
                 strftime(Sys.time(), "%Y-%m-%d_%H%M%S"),
                 " RMSD heatmap.pdf"
-            ),width = 10, height = 10)
+            ),width = 15, height = 15)
                 heatmap.2(
                     as.matrix(similarity),
                     main = "MEM RMSD",
@@ -140,7 +140,7 @@ MEM_RMSD <-
                     key = TRUE,
                     col = heat_palette,
                     breaks = pairs.breaks, 
-                    margins = c(7, 15))
+                    margins = c(10, 10))
             dev.off()
             
         }

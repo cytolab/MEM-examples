@@ -30,6 +30,8 @@ library(Rtsne)
 library(uwot)
 library(viridis)
 library(ggExtra)
+library(RColorBrewer)
+library(cowplot)
 ```
 
 ```{r data prep}
@@ -77,6 +79,14 @@ ggplot(tSNE.plot) + coord_fixed(ratio = graphical.ratio.t) +
 labs(caption = "IDH-A Glioma Data from Venteicher et al., Science 2017, 355(6332)")+ 
   theme(panel.grid.major = element_blank(),
               panel.grid.minor = element_blank())
+
+# density dot plot
+ggplot(tSNE.plot, aes(x = x, y = y)) + 
+  coord_fixed(ratio = graphical.ratio.t)+ geom_point(size = 0.5) +geom_density_2d_filled(bins = 29) +scale_fill_manual(values = c("NA","NA","NA","NA","NA","NA","NA",viridis::viridis(24,option = "A"))) +
+labs(x = "t-SNE 1", y = "t-SNE 2", 
+  title = "Density on t-SNE Axes") + theme_bw()  + 
+  theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank())+theme(legend.position = "none") +ylim(1.2*min(tSNE.data[,2]),1.2*max(tSNE.data[,2]))+xlim(1.2*min(tSNE.data[,1]),1.2*max(tSNE.data[,1]))
 ```
 
 ```{r FlowSOM on t-SNE}
@@ -105,6 +115,11 @@ fsom <-
 FlowSOM.clusters.t <-
   GetMetaclusters(fsom)
 
+
+qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
+col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, 
+                           rownames(qual_col_pals)))
+
 # plot FlowSOM clusters on t-SNE axes
 ggplot(tSNE.plot) + coord_fixed(ratio=graphical.ratio.t) + 
   geom_point(aes(x=x, y=y, color=FlowSOM.clusters.t),cex = 0.7) + 
@@ -113,7 +128,8 @@ ggplot(tSNE.plot) + coord_fixed(ratio=graphical.ratio.t) +
   guides(colour = guide_legend(override.aes = list(size=5)))+
 labs(caption = "IDH-A Glioma Data from Venteicher et al., Science 2017, 355(6332)")+ 
   theme(panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank())
+              panel.grid.minor = element_blank())+ 
+  scale_color_manual(values = col_vector)  
 ```
 
 ```{r MEM on t-SNE/FlowSOM Clusters}
@@ -175,6 +191,14 @@ ggplot(UMAP.plot) + coord_fixed(ratio = graphical.ratio) +
 labs(caption = "IDH-A Glioma Data from Venteicher et al., Science 2017, 355(6332)")+ 
   theme(panel.grid.major = element_blank(),
               panel.grid.minor = element_blank())
+
+# density dot plot
+ggplot(UMAP.plot, aes(x = x, y = y)) + 
+  coord_fixed(ratio = graphical.ratio)+ geom_point(size = 0.5) +geom_density_2d_filled(bins = 29) +scale_fill_manual(values = c("NA","NA","NA","NA","NA","NA","NA",viridis::viridis(24,option = "A"))) +
+labs(x = "UMAP 1", y = "UMAP 2", 
+  title = "Density on UMAP Axes") + theme_bw()  + 
+  theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank())+theme(legend.position = "none") +ylim(1.2*min(umap.data[,2]),1.2*max(umap.data[,2]))+xlim(1.2*min(umap.data[,1]),1.2*max(umap.data[,1]))
 ```
 
 ```{r FlowSOM on UMAP}
@@ -211,7 +235,8 @@ ggplot(UMAP.plot) + coord_fixed(ratio=graphical.ratio) +
   guides(colour = guide_legend(override.aes = list(size=5)))+
 labs(caption = "IDH-A Glioma Data from Venteicher et al., Science 2017, 355(6332)")+ 
   theme(panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank())
+              panel.grid.minor = element_blank())+ 
+  scale_color_manual(values = col_vector)  
 ```
 
 
@@ -252,8 +277,7 @@ build.heatmaps(
 ```{r RMSD for All Clusters}
 setwd(paste(getwd(), "/datafiles/scRNA-seq", sep = ""))
 
-# RMSD to compare labels from all populations (FlowSOM clusters vs. manually
-# gated cell populations)
+# RMSD to compare labels from all populations
 tf.MEM.scores = as.data.frame(MEM.values.tf[[5]])
 rownames(tf.MEM.scores) = paste0(rownames(tf.MEM.scores), ' (t-SNE/FS)')
 uf.MEM.scores = as.data.frame(MEM.values.uf[[5]])
