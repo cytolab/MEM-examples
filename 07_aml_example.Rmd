@@ -373,6 +373,8 @@ cat("\n\n...run_MEM_on_FlowSOM_on_t-SNE' finished running")
 ```
 
 ```{r run_MEM_on_FlowSOM_on_original}
+setwd(paste(getwd(), "/datafiles/aml/", sep = ""))
+
 # Time ~30 sec
 
 cluster = as.numeric(as.vector((FlowSOM.clusters.OG)))
