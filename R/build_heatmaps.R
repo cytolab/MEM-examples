@@ -132,7 +132,7 @@ build.heatmaps <-
         
         # Print MEM heatmap according to cluster spec
         if (length(which(apply(heatmap_data, 1, function(row) any(row < 0)))) == 0){
-            title_MEM = "   MEM Heatmap*"
+            title_MEM = "   MEM* Heatmap"
         }else{
             title_MEM = "   MEM Heatmap"}
         
